@@ -1,0 +1,39 @@
+## ---------- Standard .NET / Visual Studio ----------
+[Bb]in/
+[Oo]bj/
+out/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+## ---------- MAUI Specifics ----------
+# Platforms-specific build artifacts
+/Platforms/Android/test/
+/Platforms/iOS/Generated\ Files/
+/Platforms/MacCatalyst/Generated\ Files/
+
+## ---------- Publishing & Packaging ----------
+*.apk
+*.aab
+*.ipa
+*.pkg
+*.msi
+*.msix
+*.appx
+*.appxbundle
+
+## ---------- Secrets & Environment ----------
+# Keep your API keys and keystores out of source control!
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.cert
+appsettings.Development.json
+secrets.json
+
+## ---------- OS Generated ----------
+.DS_Store
+Thumbs.db
