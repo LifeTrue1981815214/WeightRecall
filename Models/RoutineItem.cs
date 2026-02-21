@@ -9,8 +9,12 @@ namespace WeightRecall.Models
     {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
-        public int DayOfWeek { get; set; }
-        public int ExerciseId { get; set; }
+
+        public string ExerciseName { get; set; } = string.Empty;
+
+        public DayOfWeek DayOfWeek { get; set; }
+
         public int Order { get; set; }
+
     }
 }

@@ -1,7 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using WeightRecall.Data;
-//using WeightRecall.Repository;
-//using WeightRecall.Services;
+using WeightRecall.Repository;
+using WeightRecall.Services;
+using WeightRecall.ViewModels;
 
 namespace WeightRecall
 {
@@ -21,10 +22,18 @@ namespace WeightRecall
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
-            // Add these to your MauiProgram.cs CreateMauiApp method
+            // Services and Data
             builder.Services.AddSingleton<DatabaseContext>();
-            //builder.Services.AddSingleton<RoutineRepository>();
-            //builder.Services.AddSingleton<RoutineService>();
+            builder.Services.AddSingleton<RoutineRepository>();
+            builder.Services.AddSingleton<RoutineService>();
+
+            // ViewModels
+            builder.Services.AddTransient<MainViewModel>();
+            builder.Services.AddTransient<ExercisesViewModel>();
+
+            // Pages
+            builder.Services.AddTransient<MainPage>();
+            builder.Services.AddTransient<ExercisesPage>();
 
             return builder.Build();
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using SQLite;
 using WeightRecall.Data;
@@ -9,37 +10,52 @@ namespace WeightRecall.Repository
 {
     public class RoutineRepository
     {
-        private readonly SQLiteAsyncConnection _database;
+        private readonly DatabaseContext _context;
 
         public RoutineRepository(DatabaseContext context)
         {
-            _database = context.Connection;
+            _context = context;
         }
 
         public async Task<List<RoutineItem>> GetRoutineItemsAsync()
         {
-            return await _database.Table<RoutineItem>().ToListAsync();
+            await _context.InitializeAsync();
+            var items = await _context.Connection.Table<RoutineItem>().ToListAsync();
+            foreach (var item in items)
+            {
+                Debug.WriteLine($"[DB DEBUG] ID: {item.Id}, Exercise: {item.ExerciseName}, Day: {item.DayOfWeek}, Order: {item.Order}");
+            }
+
+            return items;
         }
 
-        public async Task<List<RoutineItem>> GetRoutineForDayAsync(int dayOfWeek)
+        public async Task<List<RoutineItem>> GetRoutineForDayAsync(DayOfWeek day)
         {
-            return await _database.Table<RoutineItem>()
-                                  .Where(i => i.DayOfWeek == dayOfWeek)
-                                  .OrderBy(i => i.Order)
-                                  .ToListAsync();
+            await _context.InitializeAsync();
+            var items = await _context.Connection.Table<RoutineItem>()
+                .Where(r => r.DayOfWeek == day)
+                .OrderBy(r => r.Order)
+                .ToListAsync();
+
+                Debug.WriteLine($"[DB DEBUG] Found {items.Count} items for {day}");
+            foreach (var item in items)
+            {
+                Debug.WriteLine($"[DB DEBUG] ID: {item.Id}, Exercise: {item.ExerciseName}, Order: {item.Order}");
+            }
+
+            return items;
         }
 
-        public async Task<int> SaveRoutineItemAsync(RoutineItem item)
+        public async Task<int> AddRoutineItemAsync(RoutineItem item)
         {
-            if (item.Id != 0)
-                return await _database.UpdateAsync(item);
-            else
-                return await _database.InsertAsync(item);
+            await _context.InitializeAsync();
+            return await _context.Connection.InsertAsync(item);
         }
 
-        public async Task<int> DeleteRoutineItemAsync(RoutineItem item)
+        public async Task<int> DeleteRoutineItemAsync(RoutineItem Id)
         {
-            return await _database.DeleteAsync(item);
+            await _context.InitializeAsync();
+            return await _context.Connection.DeleteAsync(Id);
         }
     }
 }

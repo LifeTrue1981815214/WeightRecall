@@ -4,7 +4,7 @@ using System.Text;
 
 namespace WeightRecall.Services
 {
-    internal class WorkoutService
+    internal class WorkoutLogService
     {
     }
 }

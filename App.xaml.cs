@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace WeightRecall
+﻿namespace WeightRecall
 {
     public partial class App : Application
     {
@@ -15,21 +13,3 @@ namespace WeightRecall
         }
     }
 }
-
-//using WeightRecall.Data;
-
-//namespace WeightRecall
-//{
-//    public partial class App : Application
-//    {
-//        public App(DatabaseContext dbContext)
-//        {
-//            InitializeComponent();
-
-//            MainPage = new AppShell();
-
-//            // Trigger database creation and seeding
-//            Task.Run(async () => await dbContext.GetConnectionAsync());
-//        }
-//    }
-//}

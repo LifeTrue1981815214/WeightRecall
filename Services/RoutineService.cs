@@ -7,7 +7,7 @@ using WeightRecall.Repository;
 
 namespace WeightRecall.Services
 {
-    internal class RoutineService
+    public class RoutineService
     {
         private readonly RoutineRepository _repository;
 
@@ -16,17 +16,17 @@ namespace WeightRecall.Services
             _repository = repository;
         }
 
-        public async Task<List<RoutineItem>> GetRoutineForDay(int day)
+        public async Task<List<RoutineItem>> GetRoutineForDay(DayOfWeek day)
         {
             return await _repository.GetRoutineForDayAsync(day);
         }
-        static void UpdateRoutine()
+        public async Task<int> DeleteRoutineItem(RoutineItem item)
         {
-
+            return await _repository.DeleteRoutineItemAsync(item);
         }
-        static void ReorderRoutine()
+        public async Task<int> AddRoutineItem(RoutineItem item)
         {
-
+            return await _repository.AddRoutineItemAsync(item);
         }
 
     }

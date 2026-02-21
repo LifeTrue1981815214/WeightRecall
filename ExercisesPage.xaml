@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="WeightRecall.ExercisesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:WeightRecall.Models"
+    xmlns:viewmodels="clr-namespace:WeightRecall.ViewModels"
+    Title="Daily Routine"
+    x:DataType="viewmodels:ExercisesViewModel">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem
+            Command="{Binding GetRoutineCommand}"
+            IconImageSource="dotnet_bot.png"
+            Text="Refresh" />
+        <ToolbarItem Command="{Binding ShowAddRoutineCommand}" Text="+" />
+    </ContentPage.ToolbarItems>
+
+    <Grid>
+        <!--  Main List View  -->
+        <VerticalStackLayout Padding="10" Spacing="10">
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                <Label Text="Showing Routine for:" VerticalTextAlignment="Center" />
+                <Picker
+                    Title="Select Day"
+                    ItemsSource="{Binding AvailableDays}"
+                    SelectedItem="{Binding SelectedDay}"
+                    WidthRequest="150" />
+            </HorizontalStackLayout>
+
+            <Line HorizontalOptions="Fill" Stroke="Gray" />
+
+            <CollectionView ItemsSource="{Binding RoutineItems}">
+                <CollectionView.EmptyView>
+                    <Label
+                        FontAttributes="Italic"
+                        HorizontalOptions="Center"
+                        Text="No exercises for today"
+                        VerticalOptions="Center" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:RoutineItem">
+                        <Border Margin="0,5" Padding="10">
+                            <!--  Round corners if needed: StrokeShape="RoundRectangle 10"  -->
+                            <Grid ColumnDefinitions="*, Auto">
+                                <VerticalStackLayout Grid.Column="0">
+                                    <Label
+                                        FontAttributes="Bold"
+                                        FontSize="18"
+                                        Text="{Binding ExerciseName}" />
+                                    <Label FontSize="14" Text="{Binding Order, StringFormat='Sequence Order: {0}'}" />
+                                </VerticalStackLayout>
+                                <Button
+                                    Grid.Column="1"
+                                    BackgroundColor="Red"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ExercisesViewModel}}, Path=DeleteRoutineItemCommand}"
+                                    CommandParameter="{Binding .}"
+                                    CornerRadius="20"
+                                    HeightRequest="40"
+                                    Text="✕"
+                                    TextColor="White"
+                                    WidthRequest="40" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+
+        <!--  Add Exercise Popup Overlay  -->
+        <Grid
+            Padding="20"
+            BackgroundColor="#80000000"
+            IsVisible="{Binding IsAddingRoutine}">
+            <Border
+                BackgroundColor="White"
+                HorizontalOptions="Center"
+                StrokeShape="RoundRectangle 10"
+                VerticalOptions="Center"
+                WidthRequest="300">
+                <VerticalStackLayout Padding="20" Spacing="15">
+                    <Label
+                        FontAttributes="Bold"
+                        FontSize="20"
+                        HorizontalOptions="Center"
+                        Text="Add New Exercise"
+                        TextColor="Black" />
+
+                    <Entry
+                        Placeholder="Exercise Name"
+                        Text="{Binding NewExerciseName}"
+                        TextColor="Black" />
+
+                    <Picker
+                        Title="Select Day"
+                        ItemsSource="{Binding AvailableDays}"
+                        SelectedItem="{Binding SelectedDay}"
+                        TextColor="Black" />
+
+                    <Entry
+                        Keyboard="Numeric"
+                        Placeholder="Order"
+                        Text="{Binding NewOrder}"
+                        TextColor="Black" />
+
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                        <Button
+                            BackgroundColor="LightGray"
+                            Command="{Binding HideAddRoutineCommand}"
+                            Text="Cancel"
+                            TextColor="Black" />
+                        <Button Command="{Binding AddRoutineCommand}" Text="Add" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <ActivityIndicator
+            HorizontalOptions="Center"
+            IsRunning="{Binding IsBusy}"
+            IsVisible="{Binding IsBusy}"
+            VerticalOptions="Center" />
+    </Grid>
+
+</ContentPage>
