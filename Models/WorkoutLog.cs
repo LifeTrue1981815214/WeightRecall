@@ -1,20 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using SQLite;
 
-namespace WeightRecall.Models
+namespace WeightRecall.Models;
+
+public partial class WorkoutLog : ObservableObject
 {
-    public class WorkoutLog
-    {
-        [PrimaryKey, AutoIncrement]
-        public int Id { get; set; }
-        public DateTime Date { get; set; }
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
 
-        public string ExerciseName { get; set; } = string.Empty;
+    public DateTime Date { get; set; }
 
-        public int Sets { get; set; }
-        public int Reps { get; set; }
-        public double Weight { get; set; }
-    }
+    public string ExerciseName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    private int _sets;
+
+    [ObservableProperty]
+    private int _reps;
+
+    [ObservableProperty]
+    private double _weight;
+
+    [ObservableProperty]
+    [property: Ignore]
+    private string _previousDescription = string.Empty;
 }

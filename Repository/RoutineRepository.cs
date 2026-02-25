@@ -1,61 +1,62 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-using SQLite;
+﻿using System.Diagnostics;
 using WeightRecall.Data;
 using WeightRecall.Models;
 
-namespace WeightRecall.Repository
+namespace WeightRecall.Repository;
+
+public class RoutineRepository(DatabaseContext context)
 {
-    public class RoutineRepository
+    private readonly DatabaseContext _context = context;
+
+    public async Task<List<RoutineItem>> GetRoutineItemsAsync()
     {
-        private readonly DatabaseContext _context;
-
-        public RoutineRepository(DatabaseContext context)
+        await _context.InitializeAsync();
+        List<RoutineItem> items = await _context.Connection.Table<RoutineItem>().ToListAsync();
+        foreach (RoutineItem item in items)
         {
-            _context = context;
+            Debug.WriteLine(
+                $"[DB DEBUG] ID: {item.Id}, Exercise: {item.ExerciseName}, Day: {item.DayOfWeek}, Order: {item.Order}"
+            );
         }
 
-        public async Task<List<RoutineItem>> GetRoutineItemsAsync()
-        {
-            await _context.InitializeAsync();
-            var items = await _context.Connection.Table<RoutineItem>().ToListAsync();
-            foreach (var item in items)
-            {
-                Debug.WriteLine($"[DB DEBUG] ID: {item.Id}, Exercise: {item.ExerciseName}, Day: {item.DayOfWeek}, Order: {item.Order}");
-            }
+        return items;
+    }
 
-            return items;
+    public async Task<List<RoutineItem>> GetRoutineForDayAsync(DayOfWeek day)
+    {
+        await _context.InitializeAsync();
+        List<RoutineItem> items = await _context
+            .Connection.Table<RoutineItem>()
+            .Where(r => r.DayOfWeek == day)
+            .OrderBy(r => r.Order)
+            .ToListAsync();
+
+        Debug.WriteLine($"[DB DEBUG] Found {items.Count} items for {day}");
+        foreach (RoutineItem item in items)
+        {
+            Debug.WriteLine(
+                $"[DB DEBUG] ID: {item.Id}, Exercise: {item.ExerciseName}, Order: {item.Order}"
+            );
         }
 
-        public async Task<List<RoutineItem>> GetRoutineForDayAsync(DayOfWeek day)
-        {
-            await _context.InitializeAsync();
-            var items = await _context.Connection.Table<RoutineItem>()
-                .Where(r => r.DayOfWeek == day)
-                .OrderBy(r => r.Order)
-                .ToListAsync();
+        return items;
+    }
 
-                Debug.WriteLine($"[DB DEBUG] Found {items.Count} items for {day}");
-            foreach (var item in items)
-            {
-                Debug.WriteLine($"[DB DEBUG] ID: {item.Id}, Exercise: {item.ExerciseName}, Order: {item.Order}");
-            }
+    public async Task<int> AddRoutineItemAsync(RoutineItem item)
+    {
+        await _context.InitializeAsync();
+        return await _context.Connection.InsertAsync(item);
+    }
 
-            return items;
-        }
+    public async Task<int> DeleteRoutineItemAsync(RoutineItem id)
+    {
+        await _context.InitializeAsync();
+        return await _context.Connection.DeleteAsync(id);
+    }
 
-        public async Task<int> AddRoutineItemAsync(RoutineItem item)
-        {
-            await _context.InitializeAsync();
-            return await _context.Connection.InsertAsync(item);
-        }
-
-        public async Task<int> DeleteRoutineItemAsync(RoutineItem Id)
-        {
-            await _context.InitializeAsync();
-            return await _context.Connection.DeleteAsync(Id);
-        }
+    public async Task<int> UpdateRoutineItemAsync(RoutineItem id)
+    {
+        await _context.InitializeAsync();
+        return await _context.Connection.UpdateAsync(id);
     }
 }

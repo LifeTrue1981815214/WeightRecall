@@ -4,16 +4,33 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:WeightRecall"
-    Title="WeightRecall">
+    Title="WeightRecall"
+    FlyoutBehavior="Disabled"
+>
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="*, Auto" Margin="10,0">
+            <Label
+                Text="WeightRecall"
+                VerticalOptions="Center"
+                FontAttributes="Bold"
+                FontSize="18"
+            />
+            <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="5">
+                <Label Text="Notifications" VerticalOptions="Center" FontSize="12" />
+                <Switch
+                    x:Name="NotificationSwitch"
+                    Toggled="OnNotificationToggled"
+                    VerticalOptions="Center"
+                />
+            </HorizontalStackLayout>
+        </Grid>
+    </Shell.TitleView>
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <ShellContent Title="Home" ContentTemplate="{DataTemplate local:MainPage}" Route="MainPage" />
 
     <ShellContent
         Title="Exercises"
         ContentTemplate="{DataTemplate local:ExercisesPage}"
-        Route="ExercisesPage" />
-
+        Route="ExercisesPage"
+    />
 </Shell>

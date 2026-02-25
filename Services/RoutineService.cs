@@ -1,33 +1,84 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using WeightRecall.Data;
-using WeightRecall.Models;
+﻿using WeightRecall.Models;
 using WeightRecall.Repository;
 
-namespace WeightRecall.Services
+namespace WeightRecall.Services;
+
+public class RoutineService(RoutineRepository repository, NotificationService notificationService)
 {
-    public class RoutineService
+    private readonly RoutineRepository _repository = repository;
+    private readonly NotificationService _notificationService = notificationService;
+
+    public async Task<List<RoutineItem>> GetRoutineForDay(DayOfWeek day)
     {
-        private readonly RoutineRepository _repository;
+        return await _repository.GetRoutineForDayAsync(day);
+    }
 
-        public RoutineService(RoutineRepository repository)
-        {
-            _repository = repository;
-        }
+    public async Task<int> DeleteRoutineItem(RoutineItem item)
+    {
+        int result = await _repository.DeleteRoutineItemAsync(item);
+        await _notificationService.ScheduleDailyNotifications();
+        return result;
+    }
 
-        public async Task<List<RoutineItem>> GetRoutineForDay(DayOfWeek day)
+    public async Task<int> AddRoutineItem(RoutineItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.ExerciseName))
         {
-            return await _repository.GetRoutineForDayAsync(day);
-        }
-        public async Task<int> DeleteRoutineItem(RoutineItem item)
-        {
-            return await _repository.DeleteRoutineItemAsync(item);
-        }
-        public async Task<int> AddRoutineItem(RoutineItem item)
-        {
-            return await _repository.AddRoutineItemAsync(item);
+            throw new ArgumentException("Exercise name is required.");
         }
 
+        int result = await _repository.AddRoutineItemAsync(item);
+        await _notificationService.ScheduleDailyNotifications();
+        return result;
+    }
+
+    public async Task<int> UpdateRoutineItem(RoutineItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.ExerciseName))
+        {
+            throw new ArgumentException("Exercise name is required.");
+        }
+
+        int result = await _repository.UpdateRoutineItemAsync(item);
+        await _notificationService.ScheduleDailyNotifications();
+        return result;
+    }
+
+    public async Task ReorderRoutineItemsAsync(DayOfWeek day)
+    {
+        List<RoutineItem> items = await _repository.GetRoutineForDayAsync(day);
+        List<RoutineItem> sortedItems =
+        [
+            .. items.OrderBy(i => i.Order).ThenBy(i => i.ExerciseName),
+        ];
+
+        for (int i = 0; i < sortedItems.Count; i++)
+        {
+            int correctOrder = i + 1;
+            if (sortedItems[i].Order != correctOrder)
+            {
+                sortedItems[i].Order = correctOrder;
+                _ = await _repository.UpdateRoutineItemAsync(sortedItems[i]);
+            }
+        }
+        await _notificationService.ScheduleDailyNotifications();
+    }
+
+    public async Task ApplyRoutineChangesAsync(RoutineItem item, DayOfWeek? oldDay = null)
+    {
+        _ = item.Id == 0 ? await AddRoutineItem(item) : await UpdateRoutineItem(item);
+
+        await ReorderRoutineItemsAsync(item.DayOfWeek);
+
+        if (oldDay.HasValue && oldDay.Value != item.DayOfWeek)
+        {
+            await ReorderRoutineItemsAsync(oldDay.Value);
+        }
+    }
+
+    public async Task DeleteRoutineItemAndReorderAsync(RoutineItem item)
+    {
+        _ = await _repository.DeleteRoutineItemAsync(item);
+        await ReorderRoutineItemsAsync(item.DayOfWeek);
     }
 }

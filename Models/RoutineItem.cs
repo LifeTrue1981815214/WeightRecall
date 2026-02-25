@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using SQLite;
+﻿using SQLite;
 
-namespace WeightRecall.Models
+namespace WeightRecall.Models;
+
+public class RoutineItem
 {
-    public class RoutineItem
-    {
-        [PrimaryKey, AutoIncrement]
-        public int Id { get; set; }
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
 
-        public string ExerciseName { get; set; } = string.Empty;
+    public string ExerciseName { get; set; } = string.Empty;
 
-        public DayOfWeek DayOfWeek { get; set; }
+    public DayOfWeek DayOfWeek { get; set; }
 
-        public int Order { get; set; }
-
-    }
+    public int Order { get; set; }
 }

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="WeightRecall.ProgressPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:micro="clr-namespace:Microcharts.Maui;assembly=Microcharts.Maui"
+    xmlns:viewmodels="clr-namespace:WeightRecall.ViewModels"
+    Title="Exercise Progress"
+    x:DataType="viewmodels:ProgressViewModel"
+>
+    <Grid
+        RowDefinitions="Auto, *, Auto"
+        Padding="20"
+        BackgroundColor="{AppThemeBinding Light=White, Dark=Black}"
+    >
+        <VerticalStackLayout Grid.Row="0" Spacing="5" Margin="0,0,0,20">
+            <Label
+                Text="{Binding ExerciseName}"
+                FontSize="24"
+                FontAttributes="Bold"
+                HorizontalOptions="Center"
+                TextColor="{AppThemeBinding Light=Black, Dark=White}"
+            />
+            <Label
+                Text="Last 30 Days (Max Weight)"
+                FontSize="14"
+                HorizontalOptions="Center"
+                TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+            />
+        </VerticalStackLayout>
+
+        <Border
+            Grid.Row="1"
+            Padding="10"
+            Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+            StrokeShape="RoundRectangle 10"
+            VerticalOptions="Center"
+            IsVisible="{Binding IsHistoryAvailable}"
+        >
+            <micro:ChartView Chart="{Binding ProgressChart}" HeightRequest="400" />
+        </Border>
+
+        <Label
+            Grid.Row="1"
+            Text="No history data for this exercise in the last month."
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            FontAttributes="Italic"
+            IsVisible="{Binding IsHistoryUnavailable}"
+            TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+        />
+
+        <Button
+            Grid.Row="2"
+            Text="Back"
+            Command="{Binding GoBackCommand}"
+            HorizontalOptions="Center"
+            BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+            TextColor="{AppThemeBinding Light=White, Dark=Black}"
+            WidthRequest="150"
+        />
+
+        <ActivityIndicator
+            Grid.RowSpan="3"
+            IsRunning="{Binding IsBusy}"
+            IsVisible="{Binding IsBusy}"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+        />
+    </Grid>
+</ContentPage>

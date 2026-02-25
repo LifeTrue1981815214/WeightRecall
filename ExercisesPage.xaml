@@ -6,29 +6,55 @@
     xmlns:models="clr-namespace:WeightRecall.Models"
     xmlns:viewmodels="clr-namespace:WeightRecall.ViewModels"
     Title="Daily Routine"
-    x:DataType="viewmodels:ExercisesViewModel">
-
+    x:DataType="viewmodels:ExercisesViewModel"
+>
     <ContentPage.ToolbarItems>
-        <ToolbarItem
-            Command="{Binding GetRoutineCommand}"
-            IconImageSource="dotnet_bot.png"
-            Text="Refresh" />
         <ToolbarItem Command="{Binding ShowAddRoutineCommand}" Text="+" />
     </ContentPage.ToolbarItems>
 
-    <Grid>
+    <Grid BackgroundColor="{AppThemeBinding Light=White, Dark=Black}">
         <!--  Main List View  -->
         <VerticalStackLayout Padding="10" Spacing="10">
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,0,0,10">
+                <Button
+                    BorderColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                    BorderWidth="1"
+                    Text="WeightRecall"
+                    Clicked="OnGoToWeightRecallClicked"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=Black}"
+                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                    WidthRequest="150"
+                    HeightRequest="40"
+                />
+                <Button
+                    Text="Exercises"
+                    Clicked="OnGoToExercisesClicked"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                    TextColor="{AppThemeBinding Light=White, Dark=Black}"
+                    WidthRequest="150"
+                    HeightRequest="40"
+                />
+            </HorizontalStackLayout>
+
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
-                <Label Text="Showing Routine for:" VerticalTextAlignment="Center" />
+                <Label
+                    Text="Showing Routine for:"
+                    VerticalTextAlignment="Center"
+                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                />
                 <Picker
                     Title="Select Day"
                     ItemsSource="{Binding AvailableDays}"
                     SelectedItem="{Binding SelectedDay}"
-                    WidthRequest="150" />
+                    WidthRequest="150"
+                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                />
             </HorizontalStackLayout>
 
-            <Line HorizontalOptions="Fill" Stroke="Gray" />
+            <Line
+                HorizontalOptions="Fill"
+                Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+            />
 
             <CollectionView ItemsSource="{Binding RoutineItems}">
                 <CollectionView.EmptyView>
@@ -36,30 +62,66 @@
                         FontAttributes="Italic"
                         HorizontalOptions="Center"
                         Text="No exercises for today"
-                        VerticalOptions="Center" />
+                        VerticalOptions="Center"
+                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                    />
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:RoutineItem">
-                        <Border Margin="0,5" Padding="10">
+                        <Border
+                            Margin="0,5"
+                            Padding="10"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+                            Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
+                        >
                             <!--  Round corners if needed: StrokeShape="RoundRectangle 10"  -->
-                            <Grid ColumnDefinitions="*, Auto">
+                            <Grid ColumnDefinitions="*, Auto, Auto, Auto" ColumnSpacing="5">
                                 <VerticalStackLayout Grid.Column="0">
                                     <Label
                                         FontAttributes="Bold"
                                         FontSize="18"
-                                        Text="{Binding ExerciseName}" />
-                                    <Label FontSize="14" Text="{Binding Order, StringFormat='Sequence Order: {0}'}" />
+                                        Text="{Binding ExerciseName}"
+                                        TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                                    />
+                                    <Label
+                                        FontSize="14"
+                                        Text="{Binding Order, StringFormat='Sequence Order: {0}'}"
+                                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                                    />
                                 </VerticalStackLayout>
                                 <Button
                                     Grid.Column="1"
-                                    BackgroundColor="Red"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ExercisesViewModel}}, Path=ViewProgressCommand}"
+                                    CommandParameter="{Binding .}"
+                                    CornerRadius="10"
+                                    HeightRequest="40"
+                                    Text="📈"
+                                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                                    WidthRequest="40"
+                                />
+                                <Button
+                                    Grid.Column="2"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ExercisesViewModel}}, Path=ShowEditRoutineCommand}"
+                                    CommandParameter="{Binding .}"
+                                    CornerRadius="10"
+                                    HeightRequest="40"
+                                    Text="✎"
+                                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                                    WidthRequest="40"
+                                />
+                                <Button
+                                    Grid.Column="3"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ExercisesViewModel}}, Path=DeleteRoutineItemCommand}"
                                     CommandParameter="{Binding .}"
-                                    CornerRadius="20"
+                                    CornerRadius="10"
                                     HeightRequest="40"
                                     Text="✕"
-                                    TextColor="White"
-                                    WidthRequest="40" />
+                                    TextColor="Red"
+                                    WidthRequest="40"
+                                />
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -68,48 +130,83 @@
         </VerticalStackLayout>
 
         <!--  Add Exercise Popup Overlay  -->
-        <Grid
-            Padding="20"
-            BackgroundColor="#80000000"
-            IsVisible="{Binding IsAddingRoutine}">
+        <Grid Padding="20" BackgroundColor="#80000000" IsVisible="{Binding IsAddingRoutine}">
             <Border
-                BackgroundColor="White"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray950}}"
                 HorizontalOptions="Center"
                 StrokeShape="RoundRectangle 10"
                 VerticalOptions="Center"
-                WidthRequest="300">
+                WidthRequest="300"
+            >
                 <VerticalStackLayout Padding="20" Spacing="15">
                     <Label
                         FontAttributes="Bold"
                         FontSize="20"
                         HorizontalOptions="Center"
-                        Text="Add New Exercise"
-                        TextColor="Black" />
+                        Text="{Binding PopupTitle}"
+                        TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                    />
 
-                    <Entry
-                        Placeholder="Exercise Name"
-                        Text="{Binding NewExerciseName}"
-                        TextColor="Black" />
+                    <Border
+                        StrokeShape="RoundRectangle 10"
+                        StrokeThickness="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+                        Padding="10,0"
+                    >
+                        <Entry
+                            Placeholder="Exercise Name"
+                            Text="{Binding NewExerciseName}"
+                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                            BackgroundColor="Transparent"
+                            HeightRequest="44"
+                        />
+                    </Border>
 
-                    <Picker
-                        Title="Select Day"
-                        ItemsSource="{Binding AvailableDays}"
-                        SelectedItem="{Binding SelectedDay}"
-                        TextColor="Black" />
+                    <Border
+                        StrokeShape="RoundRectangle 10"
+                        StrokeThickness="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+                        Padding="10,0"
+                    >
+                        <Picker
+                            Title="Select Day"
+                            ItemsSource="{Binding AvailableDays}"
+                            SelectedItem="{Binding SelectedDay}"
+                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                            BackgroundColor="Transparent"
+                            HeightRequest="44"
+                        />
+                    </Border>
 
-                    <Entry
-                        Keyboard="Numeric"
-                        Placeholder="Order"
-                        Text="{Binding NewOrder}"
-                        TextColor="Black" />
+                    <Border
+                        StrokeShape="RoundRectangle 10"
+                        StrokeThickness="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+                        Padding="10,0"
+                    >
+                        <Entry
+                            Keyboard="Numeric"
+                            Placeholder="Order"
+                            Text="{Binding NewOrder}"
+                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                            BackgroundColor="Transparent"
+                            HeightRequest="44"
+                        />
+                    </Border>
 
                     <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
                         <Button
-                            BackgroundColor="LightGray"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
                             Command="{Binding HideAddRoutineCommand}"
                             Text="Cancel"
-                            TextColor="Black" />
-                        <Button Command="{Binding AddRoutineCommand}" Text="Add" />
+                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                        />
+                        <Button
+                            Command="{Binding SaveRoutineCommand}"
+                            Text="{Binding PopupButtonText}"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                            TextColor="{AppThemeBinding Light=White, Dark=Black}"
+                        />
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Border>
@@ -119,7 +216,7 @@
             HorizontalOptions="Center"
             IsRunning="{Binding IsBusy}"
             IsVisible="{Binding IsBusy}"
-            VerticalOptions="Center" />
+            VerticalOptions="Center"
+        />
     </Grid>
-
 </ContentPage>
