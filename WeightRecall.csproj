@@ -46,8 +46,8 @@
   <ItemGroup>
     <!-- App Icon -->
     <MauiIcon
-      Include="Resources\AppIcon\weightrecallcropwhitesvg.svg"
-      ForegroundFile="Resources\AppIcon\weightrecallcropsvg.svg"
+      Include="Resources\AppIcon\appicon.svg"
+      ForegroundFile="Resources\AppIcon\appiconfg.svg"
       Color="#FFFFFF"
     />
 
