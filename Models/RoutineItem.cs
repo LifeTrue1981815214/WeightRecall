@@ -2,6 +2,7 @@
 
 namespace WeightRecall.Models;
 
+[Table("RoutineItems")]
 public class RoutineItem
 {
     [PrimaryKey, AutoIncrement]

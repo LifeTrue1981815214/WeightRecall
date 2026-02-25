@@ -1,7 +1,7 @@
 ﻿using Android.App;
 using Android.Runtime;
 
-namespace WeightRecall;
+namespace WeightRecall.Platforms.Android;
 
 [Application]
 public class MainApplication(IntPtr handle, JniHandleOwnership ownership)

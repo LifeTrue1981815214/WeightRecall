@@ -13,7 +13,6 @@
     </ContentPage.ToolbarItems>
 
     <Grid BackgroundColor="{AppThemeBinding Light=White, Dark=Black}">
-        <!--  Main List View  -->
         <VerticalStackLayout Padding="10" Spacing="10">
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,0,0,10">
                 <Button
@@ -74,7 +73,6 @@
                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
                             Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
                         >
-                            <!--  Round corners if needed: StrokeShape="RoundRectangle 10"  -->
                             <Grid ColumnDefinitions="*, Auto, Auto, Auto" ColumnSpacing="5">
                                 <VerticalStackLayout Grid.Column="0">
                                     <Label
@@ -129,7 +127,6 @@
             </CollectionView>
         </VerticalStackLayout>
 
-        <!--  Add Exercise Popup Overlay  -->
         <Grid Padding="20" BackgroundColor="#80000000" IsVisible="{Binding IsAddingRoutine}">
             <Border
                 BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray950}}"

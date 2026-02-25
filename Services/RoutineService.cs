@@ -1,20 +1,32 @@
-﻿using WeightRecall.Models;
+﻿using Microsoft.Extensions.Logging;
+using WeightRecall.Models;
 using WeightRecall.Repository;
 
 namespace WeightRecall.Services;
 
-public class RoutineService(RoutineRepository repository, NotificationService notificationService)
+public class RoutineService(
+    RoutineRepository repository,
+    NotificationService notificationService,
+    ILogger<RoutineService> logger
+)
 {
     private readonly RoutineRepository _repository = repository;
     private readonly NotificationService _notificationService = notificationService;
+    private readonly ILogger<RoutineService> _logger = logger;
 
     public async Task<List<RoutineItem>> GetRoutineForDay(DayOfWeek day)
     {
+        _logger.LogDebug("Retrieving routine for {Day}", day);
         return await _repository.GetRoutineForDayAsync(day);
     }
 
     public async Task<int> DeleteRoutineItem(RoutineItem item)
     {
+        _logger.LogInformation(
+            "Deleting routine item: {Exercise} (Id: {Id})",
+            item.ExerciseName,
+            item.Id
+        );
         int result = await _repository.DeleteRoutineItemAsync(item);
         await _notificationService.ScheduleDailyNotifications();
         return result;

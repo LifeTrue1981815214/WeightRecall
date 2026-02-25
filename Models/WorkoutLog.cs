@@ -3,6 +3,7 @@ using SQLite;
 
 namespace WeightRecall.Models;
 
+[Table("WorkoutLogs")]
 public partial class WorkoutLog : ObservableObject
 {
     [PrimaryKey, AutoIncrement]

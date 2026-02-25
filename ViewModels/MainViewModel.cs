@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using WeightRecall.Models;
 using WeightRecall.Services;
 
@@ -10,6 +11,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly WorkoutLogService _workoutLogService;
     private readonly DateService _dateService;
+    private readonly ILogger<MainViewModel> _logger;
 
     public ObservableCollection<WorkoutLog> TodayExercises { get; } = [];
     public ObservableCollection<DateTime> WeekDays { get; } = [];
@@ -23,10 +25,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isBusy;
 
-    public MainViewModel(WorkoutLogService workoutLogService, DateService dateService)
+    public MainViewModel(
+        WorkoutLogService workoutLogService,
+        DateService dateService,
+        ILogger<MainViewModel> logger
+    )
     {
         _workoutLogService = workoutLogService;
         _dateService = dateService;
+        _logger = logger;
         _currentWeekMonday = _dateService.GetMonday(DateTime.Today);
         GenerateWeek();
         _ = LoadTodayExercises();
@@ -131,6 +138,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             IsBusy = true;
+            _logger.LogInformation("Loading exercises for {SelectedDate}", SelectedDate);
             TodayExercises.Clear();
 
             List<WorkoutLog> logs = await _workoutLogService.GetDailyWorkoutLogsAsync(SelectedDate);
@@ -138,6 +146,10 @@ public partial class MainViewModel : ObservableObject
             {
                 TodayExercises.Add(log);
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading today's exercises");
         }
         finally
         {

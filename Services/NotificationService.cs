@@ -1,59 +1,69 @@
+using Microsoft.Extensions.Logging;
 using Plugin.LocalNotification;
 using WeightRecall.Models;
 using WeightRecall.Repository;
 
 namespace WeightRecall.Services;
 
-public class NotificationService(RoutineRepository repository)
+public class NotificationService(RoutineRepository repository, ILogger<NotificationService> logger)
 {
     private readonly RoutineRepository _repository = repository;
+    private readonly ILogger<NotificationService> _logger = logger;
 
     public async Task<bool> RequestNotificationPermission()
     {
+        _logger.LogInformation("Requesting notification permission");
         return await LocalNotificationCenter.Current.RequestNotificationPermission();
     }
 
     public async Task ScheduleDailyNotifications()
     {
-        // First cancel all previous notifications to avoid duplicates
-        _ = LocalNotificationCenter.Current.CancelAll();
-
-        // Check user preference
-        bool notificationsEnabled = Preferences.Default.Get("NotificationsEnabled", true);
-        if (!notificationsEnabled)
+        try
         {
-            return;
-        }
+            _logger.LogInformation("Scheduling daily notifications...");
+            _ = LocalNotificationCenter.Current.CancelAll();
 
-        // Check if permission is granted
-        if (!await LocalNotificationCenter.Current.AreNotificationsEnabled())
-        {
-            return;
-        }
-
-        // We want to schedule a notification for each day of the week if there are exercises
-        foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
-        {
-            List<RoutineItem> exercises = await _repository.GetRoutineForDayAsync(day);
-
-            if (exercises.Count > 0)
+            bool notificationsEnabled = Preferences.Default.Get("NotificationsEnabled", true);
+            if (!notificationsEnabled)
             {
-                string exerciseList = string.Join(", ", exercises.Select(e => e.ExerciseName));
-
-                NotificationRequest notification = new()
-                {
-                    NotificationId = (int)day + 100, // Unique ID for each day
-                    Title = "Today's Exercises",
-                    Description = $"{exerciseList}",
-                    Schedule = new NotificationRequestSchedule
-                    {
-                        NotifyTime = GetNextOccurrence(day, 10, 0),
-                        RepeatType = NotificationRepeat.Weekly,
-                    },
-                };
-
-                _ = await LocalNotificationCenter.Current.Show(notification);
+                _logger.LogInformation("Notifications are disabled in preferences");
+                return;
             }
+
+            if (!await LocalNotificationCenter.Current.AreNotificationsEnabled())
+            {
+                _logger.LogWarning("Notifications are not enabled in system settings");
+                return;
+            }
+
+            foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
+            {
+                List<RoutineItem> exercises = await _repository.GetRoutineForDayAsync(day);
+
+                if (exercises.Count > 0)
+                {
+                    string exerciseList = string.Join(", ", exercises.Select(e => e.ExerciseName));
+
+                    NotificationRequest notification = new()
+                    {
+                        NotificationId = (int)day + 100,
+                        Title = "Today's Exercises",
+                        Description = $"{exerciseList}",
+                        Schedule = new NotificationRequestSchedule
+                        {
+                            NotifyTime = GetNextOccurrence(day, 10, 0),
+                            RepeatType = NotificationRepeat.Weekly,
+                        },
+                    };
+
+                    _ = await LocalNotificationCenter.Current.Show(notification);
+                }
+            }
+            _logger.LogInformation("Successfully updated daily notifications");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scheduling notifications");
         }
     }
 
@@ -62,7 +72,6 @@ public class NotificationService(RoutineRepository repository)
         DateTime now = DateTime.Now;
         DateTime next = new(now.Year, now.Month, now.Day, hour, minute, 0);
 
-        // If it's already past 10 AM today, or it's not today, move to the target day
         int daysUntil = ((int)day - (int)now.DayOfWeek + 7) % 7;
 
         if (daysUntil == 0 && now.TimeOfDay >= new TimeSpan(hour, minute, 0))

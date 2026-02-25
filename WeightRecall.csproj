@@ -31,8 +31,8 @@
     <ApplicationId>com.companyname.weightrecall</ApplicationId>
 
     <!-- Versions -->
-    <ApplicationDisplayVersion>0.9.0</ApplicationDisplayVersion>
-    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.9.6</ApplicationDisplayVersion>
+    <ApplicationVersion>7</ApplicationVersion>
 
     <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
     <WindowsPackageType>None</WindowsPackageType>
@@ -46,13 +46,17 @@
   <ItemGroup>
     <!-- App Icon -->
     <MauiIcon
-      Include="Resources\AppIcon\appicon.svg"
-      ForegroundFile="Resources\AppIcon\appiconfg.svg"
-      Color="#512BD4"
+      Include="Resources\AppIcon\weightrecallcropwhitesvg.svg"
+      ForegroundFile="Resources\AppIcon\weightrecallcropsvg.svg"
+      Color="#FFFFFF"
     />
 
     <!-- Splash Screen -->
-    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+    <MauiSplashScreen
+      Include="Resources\Splash\weightrecallcrop.png"
+      Color="#FFFFFF"
+      BaseSize="128,128"
+    />
 
     <!-- Images -->
     <MauiImage Include="Resources\Images\*" />
@@ -76,6 +80,8 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
-    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.10" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
   </ItemGroup>
 </Project>

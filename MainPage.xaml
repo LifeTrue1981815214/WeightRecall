@@ -11,7 +11,7 @@
 >
     <Grid
         RowDefinitions="Auto, *, Auto"
-        VerticalOptions="FillAndExpand"
+        VerticalOptions="Fill"
         BackgroundColor="{AppThemeBinding Light=White, Dark=Black}"
     >
         <VerticalStackLayout Grid.Row="0" Padding="10" Spacing="5">

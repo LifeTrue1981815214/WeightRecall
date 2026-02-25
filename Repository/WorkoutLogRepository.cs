@@ -1,54 +1,91 @@
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using WeightRecall.Data;
 using WeightRecall.Models;
 
 namespace WeightRecall.Repository;
 
-public class WorkoutLogRepository(DatabaseContext context)
+public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRepository> logger)
 {
     private readonly DatabaseContext _context = context;
+    private readonly ILogger<WorkoutLogRepository> _logger = logger;
+
+    private async Task<SQLite.SQLiteAsyncConnection> GetConnectionAsync()
+    {
+        await _context.InitializeAsync();
+        return _context.Connection;
+    }
 
     public async Task<List<WorkoutLog>> GetWorkoutLogsAsync()
     {
-        await _context.InitializeAsync();
-        List<WorkoutLog> items = await _context.Connection.Table<WorkoutLog>().ToListAsync();
-        foreach (WorkoutLog item in items)
+        try
         {
-            Debug.WriteLine(
-                $"[DB DEBUG] ID: {item.Id}, Date: {item.Date}, Exercise: {item.ExerciseName}, Sets: {item.Sets}, Reps: {item.Reps}, Weight: {item.Weight}"
-            );
+            return await (await GetConnectionAsync()).Table<WorkoutLog>().ToListAsync();
         }
-        return items;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get workout logs");
+            throw;
+        }
     }
 
     public async Task<List<WorkoutLog>> GetWorkoutLogForDateAsync(DateTime date)
     {
-        await _context.InitializeAsync();
-        List<WorkoutLog> items = await _context
-            .Connection.Table<WorkoutLog>()
-            .Where(r => r.Date == date)
-            .ToListAsync();
-        foreach (WorkoutLog item in items)
+        try
         {
-            Debug.WriteLine(
-                $"[DB DEBUG] ID: {item.Id}, Date: {item.Date}, Exercise: {item.ExerciseName}, Sets: {item.Sets}, Reps: {item.Reps}, Weight: {item.Weight}"
-            );
+            return await (await GetConnectionAsync())
+                .Table<WorkoutLog>()
+                .Where(r => r.Date == date)
+                .ToListAsync();
         }
-        return items;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get workout logs for {Date}", date);
+            throw;
+        }
     }
 
     public async Task<int> SaveWorkoutLogAsync(WorkoutLog item)
     {
-        await _context.InitializeAsync();
-        return item.Id == 0
-            ? await _context.Connection.InsertAsync(item)
-            : await _context.Connection.UpdateAsync(item);
+        try
+        {
+            SQLite.SQLiteAsyncConnection connection = await GetConnectionAsync();
+            if (item.Id == 0)
+            {
+                _logger.LogInformation(
+                    "Inserting new workout log for {Exercise}",
+                    item.ExerciseName
+                );
+                return await connection.InsertAsync(item);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Updating workout log {Id} for {Exercise}",
+                    item.Id,
+                    item.ExerciseName
+                );
+                return await connection.UpdateAsync(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save workout log for {Exercise}", item.ExerciseName);
+            throw;
+        }
     }
 
     public async Task<int> DeleteWorkoutLogAsync(WorkoutLog item)
     {
-        await _context.InitializeAsync();
-        return await _context.Connection.DeleteAsync(item);
+        try
+        {
+            _logger.LogInformation("Deleting workout log {Id}", item.Id);
+            return await (await GetConnectionAsync()).DeleteAsync(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete workout log {Id}", item.Id);
+            throw;
+        }
     }
 
     public async Task<List<WorkoutLog>> GetLogsForExerciseInDateRangeAsync(
@@ -57,11 +94,26 @@ public class WorkoutLogRepository(DatabaseContext context)
         DateTime endDate
     )
     {
-        await _context.InitializeAsync();
-        return await _context
-            .Connection.Table<WorkoutLog>()
-            .Where(w => w.ExerciseName == exerciseName && w.Date >= startDate && w.Date <= endDate)
-            .OrderBy(w => w.Date)
-            .ToListAsync();
+        try
+        {
+            return await (await GetConnectionAsync())
+                .Table<WorkoutLog>()
+                .Where(w =>
+                    w.ExerciseName == exerciseName && w.Date >= startDate && w.Date <= endDate
+                )
+                .OrderBy(w => w.Date)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to get logs for {Exercise} between {Start} and {End}",
+                exerciseName,
+                startDate,
+                endDate
+            );
+            throw;
+        }
     }
 }

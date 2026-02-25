@@ -1,46 +1,51 @@
-﻿using WeightRecall.Models;
+﻿using Microsoft.Extensions.Logging;
+using WeightRecall.Models;
 using WeightRecall.Repository;
 
 namespace WeightRecall.Services;
 
-public class WorkoutLogService(WorkoutLogRepository repository, RoutineRepository routineRepository)
+public class WorkoutLogService(
+    WorkoutLogRepository repository,
+    RoutineRepository routineRepository,
+    ILogger<WorkoutLogService> logger
+)
 {
     private readonly WorkoutLogRepository _repository = repository;
     private readonly RoutineRepository _routineRepository = routineRepository;
+    private readonly ILogger<WorkoutLogService> _logger = logger;
 
     public async Task<List<WorkoutLog>> GetWorkoutLogForExercise(DateTime date)
     {
+        _logger.LogDebug("Retrieving workout logs for {Date}", date);
         return await _repository.GetWorkoutLogForDateAsync(date);
     }
 
     public async Task<int> SaveWorkoutLog(WorkoutLog workout)
     {
+        _logger.LogInformation("Saving workout log for {Exercise}", workout.ExerciseName);
         return await _repository.SaveWorkoutLogAsync(workout);
     }
 
     public async Task<int> DeleteWorkoutLog(WorkoutLog workout)
     {
+        _logger.LogInformation("Deleting workout log: {Id}", workout.Id);
         return await _repository.DeleteWorkoutLogAsync(workout);
     }
 
     public async Task<List<WorkoutLog>> GetDailyWorkoutLogsAsync(DateTime selectedDate)
     {
-        // 1. Get the routine for the selected day of the week
         List<RoutineItem> routine = await _routineRepository.GetRoutineForDayAsync(
             selectedDate.DayOfWeek
         );
 
-        // 2. Get existing logs for the selected date
         List<WorkoutLog> logs = await _repository.GetWorkoutLogForDateAsync(selectedDate.Date);
 
-        // 3. Get logs from exactly one week ago for comparison
         List<WorkoutLog> previousLogs = await _repository.GetWorkoutLogForDateAsync(
             selectedDate.Date.AddDays(-7)
         );
 
         List<WorkoutLog> result = [];
 
-        // 4. Reconcile logs with the routine to maintain order and fill missing ones
         foreach (RoutineItem item in routine)
         {
             WorkoutLog? existingLog = logs.FirstOrDefault(l =>
@@ -63,7 +68,6 @@ public class WorkoutLogService(WorkoutLogRepository repository, RoutineRepositor
             }
             else
             {
-                // Create a placeholder if no log exists for this exercise today
                 result.Add(
                     new WorkoutLog
                     {
@@ -85,7 +89,6 @@ public class WorkoutLogService(WorkoutLogRepository repository, RoutineRepositor
     {
         foreach (WorkoutLog exercise in logs)
         {
-            // Only save if some values are entered (to avoid cluttering DB with empty placeholders)
             if (exercise.Weight > 0 || exercise.Sets > 0 || exercise.Reps > 0)
             {
                 _ = await _repository.SaveWorkoutLogAsync(exercise);

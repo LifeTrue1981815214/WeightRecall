@@ -1,62 +1,89 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
 using WeightRecall.Data;
 using WeightRecall.Models;
 
 namespace WeightRecall.Repository;
 
-public class RoutineRepository(DatabaseContext context)
+public class RoutineRepository(DatabaseContext context, ILogger<RoutineRepository> logger)
 {
     private readonly DatabaseContext _context = context;
+    private readonly ILogger<RoutineRepository> _logger = logger;
+
+    private async Task<SQLite.SQLiteAsyncConnection> GetConnectionAsync()
+    {
+        await _context.InitializeAsync();
+        return _context.Connection;
+    }
 
     public async Task<List<RoutineItem>> GetRoutineItemsAsync()
     {
-        await _context.InitializeAsync();
-        List<RoutineItem> items = await _context.Connection.Table<RoutineItem>().ToListAsync();
-        foreach (RoutineItem item in items)
+        try
         {
-            Debug.WriteLine(
-                $"[DB DEBUG] ID: {item.Id}, Exercise: {item.ExerciseName}, Day: {item.DayOfWeek}, Order: {item.Order}"
-            );
+            return await (await GetConnectionAsync()).Table<RoutineItem>().ToListAsync();
         }
-
-        return items;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get all routine items");
+            throw;
+        }
     }
 
     public async Task<List<RoutineItem>> GetRoutineForDayAsync(DayOfWeek day)
     {
-        await _context.InitializeAsync();
-        List<RoutineItem> items = await _context
-            .Connection.Table<RoutineItem>()
-            .Where(r => r.DayOfWeek == day)
-            .OrderBy(r => r.Order)
-            .ToListAsync();
-
-        Debug.WriteLine($"[DB DEBUG] Found {items.Count} items for {day}");
-        foreach (RoutineItem item in items)
+        try
         {
-            Debug.WriteLine(
-                $"[DB DEBUG] ID: {item.Id}, Exercise: {item.ExerciseName}, Order: {item.Order}"
-            );
+            return await (await GetConnectionAsync())
+                .Table<RoutineItem>()
+                .Where(r => r.DayOfWeek == day)
+                .OrderBy(r => r.Order)
+                .ToListAsync();
         }
-
-        return items;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get routine for {Day}", day);
+            throw;
+        }
     }
 
     public async Task<int> AddRoutineItemAsync(RoutineItem item)
     {
-        await _context.InitializeAsync();
-        return await _context.Connection.InsertAsync(item);
+        try
+        {
+            _logger.LogInformation("Adding routine item: {Name}", item.ExerciseName);
+            return await (await GetConnectionAsync()).InsertAsync(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add routine item {Name}", item.ExerciseName);
+            throw;
+        }
     }
 
-    public async Task<int> DeleteRoutineItemAsync(RoutineItem id)
+    public async Task<int> DeleteRoutineItemAsync(RoutineItem item)
     {
-        await _context.InitializeAsync();
-        return await _context.Connection.DeleteAsync(id);
+        try
+        {
+            _logger.LogInformation("Deleting routine item: {Id}", item.Id);
+            return await (await GetConnectionAsync()).DeleteAsync(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete routine item {Id}", item.Id);
+            throw;
+        }
     }
 
-    public async Task<int> UpdateRoutineItemAsync(RoutineItem id)
+    public async Task<int> UpdateRoutineItemAsync(RoutineItem item)
     {
-        await _context.InitializeAsync();
-        return await _context.Connection.UpdateAsync(id);
+        try
+        {
+            _logger.LogInformation("Updating routine item: {Id}", item.Id);
+            return await (await GetConnectionAsync()).UpdateAsync(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update routine item {Id}", item.Id);
+            throw;
+        }
     }
 }

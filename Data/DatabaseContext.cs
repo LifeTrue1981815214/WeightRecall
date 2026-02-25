@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
 using SQLite;
 using WeightRecall.Models;
 
@@ -7,23 +7,14 @@ namespace WeightRecall.Data;
 public class DatabaseContext
 {
     private bool _isInitialized;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly ILogger<DatabaseContext> _logger;
 
-    public DatabaseContext()
+    public DatabaseContext(ILogger<DatabaseContext> logger)
     {
+        _logger = logger;
         string databasePath = Path.Combine(FileSystem.AppDataDirectory, "WeightRecall.db3");
-
-#if ANDROID
-        // Use external files dir on Android to make the database file easier to access for debugging
-        string? androidPath = Android
-            .App.Application.Context.GetExternalFilesDir(null)
-            ?.AbsolutePath;
-        if (androidPath != null)
-        {
-            databasePath = Path.Combine(androidPath, "WeightRecall.db3");
-        }
-#endif
-
-        Debug.WriteLine($"[DB] Database Path: {databasePath}");
+        _logger.LogInformation("Initializing database at {Path}", databasePath);
         Connection = new SQLiteAsyncConnection(databasePath);
     }
 
@@ -34,105 +25,31 @@ public class DatabaseContext
             return;
         }
 
-        _ = await Connection.CreateTableAsync<RoutineItem>();
-        _ = await Connection.CreateTableAsync<WorkoutLog>();
-        Debug.WriteLine("[DB] Tables initialized successfully.");
+        await _semaphore.WaitAsync();
+        try
+        {
+            if (_isInitialized)
+            {
+                return;
+            }
 
-        await SeedData();
-        _isInitialized = true;
+            _logger.LogInformation("Creating database tables...");
+            _ = await Connection.CreateTableAsync<RoutineItem>();
+            _ = await Connection.CreateTableAsync<WorkoutLog>();
+
+            _isInitialized = true;
+            _logger.LogInformation("Database tables created successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize database.");
+            throw;
+        }
+        finally
+        {
+            _ = _semaphore.Release();
+        }
     }
 
     public SQLiteAsyncConnection Connection { get; }
-
-    private async Task SeedData()
-    {
-        // Only seed if RoutineItem is empty
-        // if (await Connection.Table<RoutineItem>().CountAsync() == 0)
-        // {
-        //     Debug.WriteLine("[DB] Seeding dummy data...");
-
-        //     _ = await Connection.InsertAsync(
-        //         new RoutineItem
-        //         {
-        //             ExerciseName = "Bench Press",
-        //             DayOfWeek = DayOfWeek.Monday,
-        //             Order = 1,
-        //         }
-        //     );
-
-        //     _ = await Connection.InsertAsync(
-        //         new RoutineItem
-        //         {
-        //             ExerciseName = "Squats",
-        //             DayOfWeek = DayOfWeek.Monday,
-        //             Order = 2,
-        //         }
-        //     );
-
-        //     _ = await Connection.InsertAsync(
-        //         new RoutineItem
-        //         {
-        //             ExerciseName = "Pec Fly",
-        //             DayOfWeek = DayOfWeek.Monday,
-        //             Order = 3,
-        //         }
-        //     );
-
-        //     _ = await Connection.InsertAsync(
-        //         new RoutineItem
-        //         {
-        //             ExerciseName = "Deadlift",
-        //             DayOfWeek = DayOfWeek.Tuesday,
-        //             Order = 1,
-        //         }
-        //     );
-
-        //     // Seed WorkoutLog
-        //     _ = await Connection.InsertAsync(
-        //         new WorkoutLog
-        //         {
-        //             Date = DateTime.Now.Date,
-        //             ExerciseName = "Bench Press",
-        //             Sets = 3,
-        //             Reps = 10,
-        //             Weight = 60.5,
-        //         }
-        //     );
-
-        //     _ = await Connection.InsertAsync(
-        //         new WorkoutLog
-        //         {
-        //             Date = DateTime.Now.Date,
-        //             ExerciseName = "Squats",
-        //             Sets = 3,
-        //             Reps = 12,
-        //             Weight = 80.0,
-        //         }
-        //     );
-
-        //     _ = await Connection.InsertAsync(
-        //         new WorkoutLog
-        //         {
-        //             Date = DateTime.Now.Date,
-        //             ExerciseName = "Pec Fly",
-        //             Sets = 3,
-        //             Reps = 15,
-        //             Weight = 40.0,
-        //         }
-        //     );
-
-        //     _ = await Connection.InsertAsync(
-        //         new WorkoutLog
-        //         {
-        //             Date = DateTime.Now.AddDays(-1).Date,
-        //             ExerciseName = "Deadlift",
-        //             Sets = 3,
-        //             Reps = 8,
-        //             Weight = 100.0,
-        //         }
-        //     );
-
-        //     Debug.WriteLine("[DB] Dummy data seeded successfully.");
-        // }
-    }
 }

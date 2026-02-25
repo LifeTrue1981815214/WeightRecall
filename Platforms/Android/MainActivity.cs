@@ -1,7 +1,7 @@
 ﻿using Android.App;
 using Android.Content.PM;
 
-namespace WeightRecall;
+namespace WeightRecall.Platforms.Android;
 
 [Activity(
     Theme = "@style/Maui.SplashTheme",

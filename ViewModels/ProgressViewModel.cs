@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microcharts;
+using Microsoft.Extensions.Logging;
 using SkiaSharp;
 using WeightRecall.Models;
 using WeightRecall.Services;
@@ -8,9 +9,13 @@ using WeightRecall.Services;
 namespace WeightRecall.ViewModels;
 
 [QueryProperty(nameof(ExerciseName), "ExerciseName")]
-public partial class ProgressViewModel(WorkoutLogService workoutLogService) : ObservableObject
+public partial class ProgressViewModel(
+    WorkoutLogService workoutLogService,
+    ILogger<ProgressViewModel> logger
+) : ObservableObject
 {
     private readonly WorkoutLogService _workoutLogService = workoutLogService;
+    private readonly ILogger<ProgressViewModel> _logger = logger;
 
     [ObservableProperty]
     private string _exerciseName = string.Empty;
@@ -41,16 +46,23 @@ public partial class ProgressViewModel(WorkoutLogService workoutLogService) : Ob
 
         try
         {
+            _logger.LogInformation("Loading progress history for {Exercise}", ExerciseName);
             IsBusy = true;
             List<ExerciseProgressPoint> history =
                 await _workoutLogService.GetExerciseProgressHistoryAsync(ExerciseName);
 
             if (history == null || history.Count == 0)
             {
+                _logger.LogInformation("No history found for {Exercise}", ExerciseName);
                 ProgressChart = null;
                 return;
             }
 
+            _logger.LogInformation(
+                "Found {Count} data points for {Exercise}",
+                history.Count,
+                ExerciseName
+            );
             bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
             SKColor textColor = isDark ? SKColors.White : SKColors.Black;
 
@@ -76,6 +88,10 @@ public partial class ProgressViewModel(WorkoutLogService workoutLogService) : Ob
                 LabelOrientation = Orientation.Horizontal,
                 ValueLabelOrientation = Orientation.Horizontal,
             };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load progress for {Exercise}", ExerciseName);
         }
         finally
         {
