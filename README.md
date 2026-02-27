@@ -1,6 +1,8 @@
 # WeightRecall
 
-WeightRecall is a mobile application built with .NET MAUI designed to help you track your weightlifting progress. It allows you to define a weekly workout routine and log your performance (sets, reps, and weight) for each exercise, providing historical context to help you push your limits.
+WeightRecall is an Android mobile application built with .NET MAUI designed to help you track your weightlifting progress. It allows you to define a weekly workout routine and log your performance (sets, reps, and weight) for each exercise, providing historical context to help you push your limits.
+
+> **Note**: This application is currently optimized and intended for **Android only**.
 
 ## Features
 
@@ -49,7 +51,7 @@ If you wish to build the project yourself:
    dotnet restore
    ```
 
-4. Build and run the application on your preferred platform (Android, iOS, or Windows).
+4. Build and run the application on an Android device or emulator.
 
 ## Project Structure
 
