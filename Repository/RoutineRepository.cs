@@ -4,6 +4,11 @@ using WeightRecall.Models;
 
 namespace WeightRecall.Repository;
 
+/// <summary>
+/// Repository for managing workout routine items in the database.
+/// </summary>
+/// <param name="context">The database context for data access.</param>
+/// <param name="logger">The logger instance for diagnostics.</param>
 public class RoutineRepository(DatabaseContext context, ILogger<RoutineRepository> logger)
 {
     private readonly DatabaseContext _context = context;
@@ -15,6 +20,10 @@ public class RoutineRepository(DatabaseContext context, ILogger<RoutineRepositor
         return _context.Connection;
     }
 
+    /// <summary>
+    /// Retrieves all routine items from the database.
+    /// </summary>
+    /// <returns>A list of all <see cref="RoutineItem"/> entries.</returns>
     public async Task<List<RoutineItem>> GetRoutineItemsAsync()
     {
         try
@@ -28,6 +37,11 @@ public class RoutineRepository(DatabaseContext context, ILogger<RoutineRepositor
         }
     }
 
+    /// <summary>
+    /// Retrieves routine items for a specific day of the week, ordered by their display order.
+    /// </summary>
+    /// <param name="day">The day of the week to retrieve the routine for.</param>
+    /// <returns>A list of <see cref="RoutineItem"/> for the specified day.</returns>
     public async Task<List<RoutineItem>> GetRoutineForDayAsync(DayOfWeek day)
     {
         try
@@ -45,6 +59,11 @@ public class RoutineRepository(DatabaseContext context, ILogger<RoutineRepositor
         }
     }
 
+    /// <summary>
+    /// Adds a new routine item to the database.
+    /// </summary>
+    /// <param name="item">The routine item to add.</param>
+    /// <returns>The number of rows affected.</returns>
     public async Task<int> AddRoutineItemAsync(RoutineItem item)
     {
         try
@@ -59,6 +78,11 @@ public class RoutineRepository(DatabaseContext context, ILogger<RoutineRepositor
         }
     }
 
+    /// <summary>
+    /// Deletes a routine item from the database.
+    /// </summary>
+    /// <param name="item">The routine item to delete.</param>
+    /// <returns>The number of rows affected.</returns>
     public async Task<int> DeleteRoutineItemAsync(RoutineItem item)
     {
         try
@@ -73,6 +97,11 @@ public class RoutineRepository(DatabaseContext context, ILogger<RoutineRepositor
         }
     }
 
+    /// <summary>
+    /// Updates an existing routine item in the database.
+    /// </summary>
+    /// <param name="item">The routine item to update.</param>
+    /// <returns>The number of rows affected.</returns>
     public async Task<int> UpdateRoutineItemAsync(RoutineItem item)
     {
         try

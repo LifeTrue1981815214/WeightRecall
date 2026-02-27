@@ -4,6 +4,12 @@ using WeightRecall.Repository;
 
 namespace WeightRecall.Services;
 
+/// <summary>
+/// Service for managing workout logs and computing exercise progress.
+/// </summary>
+/// <param name="repository">The workout log repository.</param>
+/// <param name="routineRepository">The routine repository to cross-reference exercises.</param>
+/// <param name="logger">The logger instance for diagnostics.</param>
 public class WorkoutLogService(
     WorkoutLogRepository repository,
     RoutineRepository routineRepository,
@@ -14,24 +20,45 @@ public class WorkoutLogService(
     private readonly RoutineRepository _routineRepository = routineRepository;
     private readonly ILogger<WorkoutLogService> _logger = logger;
 
+    /// <summary>
+    /// Retrieves all workout logs for a given date.
+    /// </summary>
+    /// <param name="date">Target date.</param>
+    /// <returns>A list of <see cref="WorkoutLog"/> entries.</returns>
     public async Task<List<WorkoutLog>> GetWorkoutLogForExercise(DateTime date)
     {
         _logger.LogDebug("Retrieving workout logs for {Date}", date);
         return await _repository.GetWorkoutLogForDateAsync(date);
     }
 
+    /// <summary>
+    /// Saves a single workout log entry.
+    /// </summary>
+    /// <param name="workout">The workout log to save.</param>
+    /// <returns>The number of rows affected.</returns>
     public async Task<int> SaveWorkoutLog(WorkoutLog workout)
     {
         _logger.LogInformation("Saving workout log for {Exercise}", workout.ExerciseName);
         return await _repository.SaveWorkoutLogAsync(workout);
     }
 
+    /// <summary>
+    /// Deletes a workout log entry.
+    /// </summary>
+    /// <param name="workout">The workout log to delete.</param>
+    /// <returns>The number of rows affected.</returns>
     public async Task<int> DeleteWorkoutLog(WorkoutLog workout)
     {
         _logger.LogInformation("Deleting workout log: {Id}", workout.Id);
         return await _repository.DeleteWorkoutLogAsync(workout);
     }
 
+    /// <summary>
+    /// Gets the list of workout logs for a selected date, pre-populated with exercises from the routine for that day.
+    /// Also fetches historical data from the previous week to provide context.
+    /// </summary>
+    /// <param name="selectedDate">The date chosen by the user.</param>
+    /// <returns>A list of workout logs representing the daily plan and any existing data.</returns>
     public async Task<List<WorkoutLog>> GetDailyWorkoutLogsAsync(DateTime selectedDate)
     {
         List<RoutineItem> routine = await _routineRepository.GetRoutineForDayAsync(
@@ -85,6 +112,11 @@ public class WorkoutLogService(
         return result;
     }
 
+    /// <summary>
+    /// Saves multiple workout log entries, skipping those with no recorded activity.
+    /// </summary>
+    /// <param name="logs">Collection of workout logs to save.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task SaveWorkoutLogsAsync(IEnumerable<WorkoutLog> logs)
     {
         foreach (WorkoutLog exercise in logs)
@@ -96,6 +128,11 @@ public class WorkoutLogService(
         }
     }
 
+    /// <summary>
+    /// Retrieves workout logs for a specific exercise over the last month.
+    /// </summary>
+    /// <param name="exerciseName">The exercise to track.</param>
+    /// <returns>A list of <see cref="WorkoutLog"/> entries from the last 30 days.</returns>
     public async Task<List<WorkoutLog>> GetExerciseProgressLastMonth(string exerciseName)
     {
         DateTime endDate = DateTime.Today;
@@ -107,6 +144,11 @@ public class WorkoutLogService(
         );
     }
 
+    /// <summary>
+    /// Aggregates workout history for an exercise into a simplified progress history.
+    /// </summary>
+    /// <param name="exerciseName">The name of the exercise.</param>
+    /// <returns>A list of <see cref="ExerciseProgressPoint"/> data points.</returns>
     public async Task<List<ExerciseProgressPoint>> GetExerciseProgressHistoryAsync(
         string exerciseName
     )

@@ -4,11 +4,21 @@ using WeightRecall.Services;
 
 namespace WeightRecall;
 
+/// <summary>
+/// Interaction logic for the main Application class.
+/// Responsible for startup initialization, error handling, and window creation.
+/// </summary>
 public partial class App : Application
 {
     private readonly NotificationService _notificationService;
     private readonly ILogger<App> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="App"/> class.
+    /// Sets up global exception handling.
+    /// </summary>
+    /// <param name="notificationService">Service for managing notifications.</param>
+    /// <param name="logger">Logger instance.</param>
     public App(NotificationService notificationService, ILogger<App> logger)
     {
         InitializeComponent();
@@ -28,6 +38,10 @@ public partial class App : Application
         };
     }
 
+    /// <summary>
+    /// Triggered when the application starts.
+    /// Requests notification permissions and schedules daily reminders if enabled.
+    /// </summary>
     protected override async void OnStart()
     {
         base.OnStart();
@@ -43,6 +57,11 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Creates the main window for the application.
+    /// </summary>
+    /// <param name="activationState">The activation state.</param>
+    /// <returns>A new <see cref="Window"/>.</returns>
     protected override Window CreateWindow(IActivationState? activationState)
     {
         _logger.LogInformation("Creating app window");

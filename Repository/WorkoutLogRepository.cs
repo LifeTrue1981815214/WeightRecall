@@ -4,6 +4,11 @@ using WeightRecall.Models;
 
 namespace WeightRecall.Repository;
 
+/// <summary>
+/// Repository for managing workout logs in the database.
+/// </summary>
+/// <param name="context">The database context for data access.</param>
+/// <param name="logger">The logger instance for diagnostics.</param>
 public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRepository> logger)
 {
     private readonly DatabaseContext _context = context;
@@ -15,6 +20,10 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         return _context.Connection;
     }
 
+    /// <summary>
+    /// Retrieves all workout logs from the database.
+    /// </summary>
+    /// <returns>A list of all <see cref="WorkoutLog"/> entries.</returns>
     public async Task<List<WorkoutLog>> GetWorkoutLogsAsync()
     {
         try
@@ -28,6 +37,11 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         }
     }
 
+    /// <summary>
+    /// Retrieves workout logs for a specific date.
+    /// </summary>
+    /// <param name="date">The date to retrieve logs for.</param>
+    /// <returns>A list of <see cref="WorkoutLog"/> entries for the specified date.</returns>
     public async Task<List<WorkoutLog>> GetWorkoutLogForDateAsync(DateTime date)
     {
         try
@@ -44,6 +58,11 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         }
     }
 
+    /// <summary>
+    /// Saves a workout log entry to the database (inserts if new, updates if existing).
+    /// </summary>
+    /// <param name="item">The workout log entry to save.</param>
+    /// <returns>The number of rows affected.</returns>
     public async Task<int> SaveWorkoutLogAsync(WorkoutLog item)
     {
         try
@@ -74,6 +93,11 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         }
     }
 
+    /// <summary>
+    /// Deletes a workout log entry from the database.
+    /// </summary>
+    /// <param name="item">The workout log entry to delete.</param>
+    /// <returns>The number of rows affected.</returns>
     public async Task<int> DeleteWorkoutLogAsync(WorkoutLog item)
     {
         try
@@ -88,6 +112,13 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         }
     }
 
+    /// <summary>
+    /// Retrieves logs for a specific exercise within a given date range.
+    /// </summary>
+    /// <param name="exerciseName">The name of the exercise.</param>
+    /// <param name="startDate">The start of the date range.</param>
+    /// <param name="endDate">The end of the date range.</param>
+    /// <returns>A list of matching <see cref="WorkoutLog"/> entries.</returns>
     public async Task<List<WorkoutLog>> GetLogsForExerciseInDateRangeAsync(
         string exerciseName,
         DateTime startDate,

@@ -7,11 +7,20 @@ using WeightRecall.Services;
 
 namespace WeightRecall.ViewModels;
 
+/// <summary>
+/// ViewModel for managing the workout routine exercises.
+/// Allows adding, editing, and deleting routine items for different days of the week.
+/// </summary>
 public partial class ExercisesViewModel : ObservableObject
 {
     private readonly RoutineService _routineService;
     private readonly ILogger<ExercisesViewModel> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExercisesViewModel"/> class.
+    /// </summary>
+    /// <param name="routineService">Service for routine business logic.</param>
+    /// <param name="logger">The logger instance for diagnostics.</param>
     public ExercisesViewModel(RoutineService routineService, ILogger<ExercisesViewModel> logger)
     {
         _routineService = routineService;
@@ -20,25 +29,50 @@ public partial class ExercisesViewModel : ObservableObject
         _ = LoadRoutineItemsAsync();
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the ViewModel is performing an asynchronous operation.
+    /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotBusy))]
     private bool _isBusy;
 
+    /// <summary>
+    /// Gets a value indicating whether the ViewModel is not busy.
+    /// </summary>
     public bool IsNotBusy => !IsBusy;
 
+    /// <summary>
+    /// Gets the collection of routine items for the selected day.
+    /// </summary>
     public ObservableCollection<RoutineItem> RoutineItems { get; } = [];
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the "Add/Edit" popup is currently visible.
+    /// </summary>
     [ObservableProperty]
     private bool _isAddingRoutine;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the current operation is an edit (true) or an add (false).
+    /// </summary>
     [ObservableProperty]
     private bool _isEditing;
 
     private RoutineItem? _editingItem;
 
+    /// <summary>
+    /// Gets the title for the entry popup based on the current mode (Add/Edit).
+    /// </summary>
     public string PopupTitle => IsEditing ? "Edit Exercise" : "Add New Exercise";
+
+    /// <summary>
+    /// Gets the button text for the entry popup based on the current mode (Add/Edit).
+    /// </summary>
     public string PopupButtonText => IsEditing ? "Update" : "Add";
 
+    /// <summary>
+    /// Command to display the popup in "Add" mode.
+    /// </summary>
     [RelayCommand]
     private void ShowAddRoutine()
     {
@@ -48,6 +82,10 @@ public partial class ExercisesViewModel : ObservableObject
         OnPropertyChanged(nameof(PopupButtonText));
     }
 
+    /// <summary>
+    /// Command to display the popup in "Edit" mode for a specific routine item.
+    /// </summary>
+    /// <param name="item">The routine item to edit.</param>
     [RelayCommand]
     private void ShowEditRoutine(RoutineItem item)
     {
@@ -61,6 +99,9 @@ public partial class ExercisesViewModel : ObservableObject
         OnPropertyChanged(nameof(PopupButtonText));
     }
 
+    /// <summary>
+    /// Command to hide the entry popup and reset fields.
+    /// </summary>
     [RelayCommand]
     private void HideAddRoutine()
     {
@@ -71,6 +112,10 @@ public partial class ExercisesViewModel : ObservableObject
         NewOrder = string.Empty;
     }
 
+    /// <summary>
+    /// Command to fetch routine items from the service for the currently selected day.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [RelayCommand]
     public async Task LoadRoutineItemsAsync()
     {

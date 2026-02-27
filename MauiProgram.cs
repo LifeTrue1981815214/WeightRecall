@@ -10,8 +10,15 @@ using WeightRecall.ViewModels;
 
 namespace WeightRecall;
 
+/// <summary>
+/// Static class for configuring and building the MAUI application.
+/// </summary>
 public static class MauiProgram
 {
+    /// <summary>
+    /// Configures the MAUI app, including logging, third-party libraries, and dependency injection.
+    /// </summary>
+    /// <returns>The configured <see cref="MauiApp"/>.</returns>
     public static MauiApp CreateMauiApp()
     {
         string logBaseDir = FileSystem.AppDataDirectory;
@@ -32,6 +39,7 @@ public static class MauiProgram
 
         string logPath = Path.Combine(logBaseDir, "logs", "log.txt");
 
+        // Configure Serilog for file logging
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
@@ -59,6 +67,7 @@ public static class MauiProgram
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
+        // Register Services and Repositories for Dependency Injection
         builder.Services.AddSingleton<DatabaseContext>();
         builder.Services.AddSingleton<RoutineRepository>();
         builder.Services.AddSingleton<RoutineService>();
@@ -67,10 +76,12 @@ public static class MauiProgram
         builder.Services.AddSingleton<NotificationService>();
         builder.Services.AddSingleton<DateService>();
 
+        // Register ViewModels
         builder.Services.AddTransient<MainViewModel>();
         builder.Services.AddTransient<ExercisesViewModel>();
         builder.Services.AddTransient<ProgressViewModel>();
 
+        // Register Pages
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<ExercisesPage>();
         builder.Services.AddTransient<ProgressPage>();

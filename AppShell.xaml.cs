@@ -2,10 +2,18 @@
 
 namespace WeightRecall;
 
+/// <summary>
+/// Interaction logic for the application shell, managing navigation and settings common to all pages.
+/// </summary>
 public partial class AppShell : Shell
 {
     private readonly NotificationService _notificationService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AppShell"/> class.
+    /// Configures routing and initializes UI state from preferences.
+    /// </summary>
+    /// <param name="notificationService">Service for managing notifications.</param>
     public AppShell(NotificationService notificationService)
     {
         InitializeComponent();
@@ -16,6 +24,10 @@ public partial class AppShell : Shell
         NotificationSwitch.IsToggled = Preferences.Default.Get("NotificationsEnabled", true);
     }
 
+    /// <summary>
+    /// Event handler for the notification toggle switch.
+    /// Updates preferences and schedules or cancels notifications accordingly.
+    /// </summary>
     private async void OnNotificationToggled(object? sender, ToggledEventArgs e)
     {
         Preferences.Default.Set("NotificationsEnabled", e.Value);

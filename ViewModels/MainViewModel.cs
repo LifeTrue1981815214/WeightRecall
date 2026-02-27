@@ -7,24 +7,49 @@ using WeightRecall.Services;
 
 namespace WeightRecall.ViewModels;
 
+/// <summary>
+/// ViewModel for the main page, managing daily workout logs and weekly navigation.
+/// </summary>
 public partial class MainViewModel : ObservableObject
 {
     private readonly WorkoutLogService _workoutLogService;
     private readonly DateService _dateService;
     private readonly ILogger<MainViewModel> _logger;
 
+    /// <summary>
+    /// Gets the collection of logged exercises for the selected date.
+    /// </summary>
     public ObservableCollection<WorkoutLog> TodayExercises { get; } = [];
+
+    /// <summary>
+    /// Gets the collection of dates for the current week.
+    /// </summary>
     public ObservableCollection<DateTime> WeekDays { get; } = [];
 
+    /// <summary>
+    /// Gets or sets the currently selected date for viewing/logging workouts.
+    /// </summary>
     [ObservableProperty]
     private DateTime _selectedDate = DateTime.Today;
 
+    /// <summary>
+    /// Gets or sets the Monday of the current week being displayed.
+    /// </summary>
     [ObservableProperty]
     private DateTime _currentWeekMonday;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the ViewModel is performing an asynchronous operation.
+    /// </summary>
     [ObservableProperty]
     private bool _isBusy;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MainViewModel"/> class.
+    /// </summary>
+    /// <param name="workoutLogService">Service for workout logs.</param>
+    /// <param name="dateService">Service for date utilities.</param>
+    /// <param name="logger">Logger instance.</param>
     public MainViewModel(
         WorkoutLogService workoutLogService,
         DateService dateService,
@@ -39,6 +64,9 @@ public partial class MainViewModel : ObservableObject
         _ = LoadTodayExercises();
     }
 
+    /// <summary>
+    /// Populates the <see cref="WeekDays"/> collection based on <see cref="CurrentWeekMonday"/>.
+    /// </summary>
     private void GenerateWeek()
     {
         WeekDays.Clear();
@@ -49,6 +77,9 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Command to navigate to the previous week.
+    /// </summary>
     [RelayCommand]
     public void PreviousWeek()
     {
@@ -56,6 +87,9 @@ public partial class MainViewModel : ObservableObject
         GenerateWeek();
     }
 
+    /// <summary>
+    /// Command to navigate to the next week (up to current week).
+    /// </summary>
     [RelayCommand]
     public void NextWeek()
     {
@@ -67,6 +101,11 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Command to select a specific date and load its exercises.
+    /// </summary>
+    /// <param name="date">The date to select.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [RelayCommand]
     public async Task SelectDate(DateTime date)
     {
@@ -74,12 +113,22 @@ public partial class MainViewModel : ObservableObject
         await LoadTodayExercises();
     }
 
+    /// <summary>
+    /// Command to navigate to the progress chart for a specific exercise.
+    /// </summary>
+    /// <param name="log">The workout log containing the exercise name.</param>
+    /// <returns>A task representing the asynchronous navigation.</returns>
     [RelayCommand]
     public async Task ViewProgress(WorkoutLog log)
     {
         await Shell.Current.GoToAsync($"{nameof(ProgressPage)}?ExerciseName={log.ExerciseName}");
     }
 
+    /// <summary>
+    /// Command to delete a workout log entry.
+    /// </summary>
+    /// <param name="log">The log entry to delete.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [RelayCommand]
     public async Task DeleteLog(WorkoutLog log)
     {

@@ -4,12 +4,19 @@ using WeightRecall.Models;
 
 namespace WeightRecall.Data;
 
+/// <summary>
+/// Provides access to the SQLite database and handles its initialization.
+/// </summary>
 public class DatabaseContext
 {
     private bool _isInitialized;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ILogger<DatabaseContext> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DatabaseContext"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance for diagnostics.</param>
     public DatabaseContext(ILogger<DatabaseContext> logger)
     {
         _logger = logger;
@@ -18,6 +25,12 @@ public class DatabaseContext
         Connection = new SQLiteAsyncConnection(databasePath);
     }
 
+    /// <summary>
+    /// Ensures that the database and its tables are created and ready for use.
+    /// This method is thread-safe and only performs initialization once.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
+    /// <exception cref="Exception">Thrown when database initialization fails.</exception>
     public async Task InitializeAsync()
     {
         if (_isInitialized)
@@ -51,5 +64,8 @@ public class DatabaseContext
         }
     }
 
+    /// <summary>
+    /// Gets the SQLite asynchronous connection.
+    /// </summary>
     public SQLiteAsyncConnection Connection { get; }
 }

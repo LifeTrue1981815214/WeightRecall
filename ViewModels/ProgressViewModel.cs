@@ -8,6 +8,11 @@ using WeightRecall.Services;
 
 namespace WeightRecall.ViewModels;
 
+/// <summary>
+/// ViewModel for the progress page, displaying exercise performance over time using charts.
+/// </summary>
+/// <param name="workoutLogService">Service for workout logs.</param>
+/// <param name="logger">Logger instance.</param>
 [QueryProperty(nameof(ExerciseName), "ExerciseName")]
 public partial class ProgressViewModel(
     WorkoutLogService workoutLogService,
@@ -17,25 +22,50 @@ public partial class ProgressViewModel(
     private readonly WorkoutLogService _workoutLogService = workoutLogService;
     private readonly ILogger<ProgressViewModel> _logger = logger;
 
+    /// <summary>
+    /// Gets or sets the name of the exercise for which to display progress.
+    /// This is populated via query parameter.
+    /// </summary>
     [ObservableProperty]
     private string _exerciseName = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the chart reflecting the progress of the exercise.
+    /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsHistoryAvailable))]
     [NotifyPropertyChangedFor(nameof(IsHistoryUnavailable))]
     private Chart? _progressChart;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the ViewModel is busy loading data.
+    /// </summary>
     [ObservableProperty]
     private bool _isBusy;
 
+    /// <summary>
+    /// Gets a value indicating whether progress history data is available to display.
+    /// </summary>
     public bool IsHistoryAvailable => ProgressChart != null;
+
+    /// <summary>
+    /// Gets a value indicating whether no progress history was found and loading has finished.
+    /// </summary>
     public bool IsHistoryUnavailable => ProgressChart == null && !IsBusy;
 
+    /// <summary>
+    /// Triggered when the <see cref="ExerciseName"/> property changes.
+    /// </summary>
+    /// <param name="value">The new exercise name.</param>
     partial void OnExerciseNameChanged(string value)
     {
         _ = LoadProgress();
     }
 
+    /// <summary>
+    /// Command to asynchronously load progress data and generate the chart.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [RelayCommand]
     private async Task LoadProgress()
     {

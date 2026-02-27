@@ -5,17 +5,31 @@ using WeightRecall.Repository;
 
 namespace WeightRecall.Services;
 
+/// <summary>
+/// Service for managing local notifications for exercise reminders.
+/// </summary>
+/// <param name="repository">The routine repository to fetch scheduled exercises.</param>
+/// <param name="logger">The logger instance for diagnostics.</param>
 public class NotificationService(RoutineRepository repository, ILogger<NotificationService> logger)
 {
     private readonly RoutineRepository _repository = repository;
     private readonly ILogger<NotificationService> _logger = logger;
 
+    /// <summary>
+    /// Requests the user's permission to display local notifications.
+    /// </summary>
+    /// <returns>True if permission is granted, false otherwise.</returns>
     public async Task<bool> RequestNotificationPermission()
     {
         _logger.LogInformation("Requesting notification permission");
         return await LocalNotificationCenter.Current.RequestNotificationPermission();
     }
 
+    /// <summary>
+    /// Schedules weekly notifications for each day that has exercises in the routine.
+    /// Notifications are cancelled and rescheduled to match current routine state.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task ScheduleDailyNotifications()
     {
         try
@@ -67,6 +81,13 @@ public class NotificationService(RoutineRepository repository, ILogger<Notificat
         }
     }
 
+    /// <summary>
+    /// Calculates the next occurrence of a specific time on a given day of the week.
+    /// </summary>
+    /// <param name="day">Target day of the week.</param>
+    /// <param name="hour">Target hour (24-hour format).</param>
+    /// <param name="minute">Target minute.</param>
+    /// <returns>The <see cref="DateTime"/> for the next occurrence.</returns>
     private static DateTime GetNextOccurrence(DayOfWeek day, int hour, int minute)
     {
         DateTime now = DateTime.Now;
