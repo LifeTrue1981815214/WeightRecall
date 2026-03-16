@@ -3,7 +3,7 @@
     x:Class="WeightRecall.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:WeightRecall"
+    xmlns:views="clr-namespace:WeightRecall.Views"
     Title="WeightRecall"
     FlyoutBehavior="Disabled"
 >
@@ -26,11 +26,11 @@
         </Grid>
     </Shell.TitleView>
 
-    <ShellContent Title="Home" ContentTemplate="{DataTemplate local:MainPage}" Route="MainPage" />
+    <ShellContent Title="Home" ContentTemplate="{DataTemplate views:MainPage}" Route="MainPage" />
 
     <ShellContent
         Title="Exercises"
-        ContentTemplate="{DataTemplate local:ExercisesPage}"
+        ContentTemplate="{DataTemplate views:ExercisesPage}"
         Route="ExercisesPage"
     />
 </Shell>

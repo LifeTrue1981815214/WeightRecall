@@ -7,6 +7,7 @@ using WeightRecall.Data;
 using WeightRecall.Repository;
 using WeightRecall.Services;
 using WeightRecall.ViewModels;
+using WeightRecall.Views;
 
 namespace WeightRecall;
 

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using WeightRecall.Models;
 using WeightRecall.Services;
+using WeightRecall.Views;
 
 namespace WeightRecall.ViewModels;
 
