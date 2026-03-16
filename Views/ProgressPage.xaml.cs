@@ -1,6 +1,6 @@
 using WeightRecall.ViewModels;
 
-namespace WeightRecall;
+namespace WeightRecall.Views;
 
 /// <summary>
 /// Page displaying progress charts for a selected exercise.

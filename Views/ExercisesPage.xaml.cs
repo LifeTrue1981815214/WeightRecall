@@ -1,6 +1,6 @@
 using WeightRecall.ViewModels;
 
-namespace WeightRecall;
+namespace WeightRecall.Views;
 
 /// <summary>
 /// Page for managing the weekly workout routine.

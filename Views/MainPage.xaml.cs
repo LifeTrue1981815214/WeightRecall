@@ -1,6 +1,6 @@
 ﻿using WeightRecall.ViewModels;
 
-namespace WeightRecall;
+namespace WeightRecall.Views;
 
 /// <summary>
 /// The main landing page of the application where users log their daily exercise progress.
