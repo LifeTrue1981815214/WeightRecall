@@ -61,26 +61,29 @@ public class WorkoutLogService(
     /// <returns>A list of workout logs representing the daily plan and any existing data.</returns>
     public async Task<List<WorkoutLog>> GetDailyWorkoutLogsAsync(DateTime selectedDate)
     {
+        // 1. Get the routine definition for this day of the week
         List<RoutineItem> routine = await _routineRepository.GetRoutineForDayAsync(
             selectedDate.DayOfWeek
         );
 
-        List<WorkoutLog> logs = await _repository.GetWorkoutLogForDateAsync(selectedDate.Date);
-
-        List<WorkoutLog> previousLogs = await _repository.GetWorkoutLogForDateAsync(
-            selectedDate.Date.AddDays(-7)
+        // 2. Get any existing logs already saved for this specific date
+        List<WorkoutLog> existingLogsForDay = await _repository.GetWorkoutLogForDateAsync(
+            selectedDate.Date
         );
 
         List<WorkoutLog> result = [];
 
         foreach (RoutineItem item in routine)
         {
-            WorkoutLog? existingLog = logs.FirstOrDefault(l =>
+            // Check if the user already started/saved this exercise today
+            WorkoutLog? existingLog = existingLogsForDay.FirstOrDefault(l =>
                 l.ExerciseName.Equals(item.ExerciseName, StringComparison.OrdinalIgnoreCase)
             );
 
-            WorkoutLog? prevLog = previousLogs.FirstOrDefault(l =>
-                l.ExerciseName.Equals(item.ExerciseName, StringComparison.OrdinalIgnoreCase)
+            // 3. Get the MOST RECENT log before today (regardless of how many days ago)
+            WorkoutLog? prevLog = await _repository.GetLatestLogForExerciseAsync(
+                item.ExerciseName,
+                selectedDate.Date.AddDays(-1) // Ensures we don't pick up "today" as "previous"
             );
 
             string prevDesc =
@@ -90,11 +93,13 @@ public class WorkoutLogService(
 
             if (existingLog != null)
             {
+                // If it exists, just update the description for the UI
                 existingLog.PreviousDescription = prevDesc;
                 result.Add(existingLog);
             }
             else
             {
+                // If it's a new entry for the day, create the placeholder
                 result.Add(
                     new WorkoutLog
                     {

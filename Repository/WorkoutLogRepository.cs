@@ -59,6 +59,40 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
     }
 
     /// <summary>
+    /// Retrieves the most recent workout log for an exercise on or before the specified date.
+    /// </summary>
+    /// <param name="exerciseName">The exercise name.</param>
+    /// <param name="beforeDate">The latest date to consider (inclusive).</param>
+    /// <returns>The latest <see cref="WorkoutLog"/> or null if none found.</returns>
+    public async Task<WorkoutLog?> GetLatestLogForExerciseAsync(
+        string exerciseName,
+        DateTime beforeDate
+    )
+    {
+        try
+        {
+            List<WorkoutLog> list = await (await GetConnectionAsync())
+                .Table<WorkoutLog>()
+                .Where(w => w.ExerciseName == exerciseName && w.Date <= beforeDate)
+                .OrderByDescending(w => w.Date)
+                .Take(1)
+                .ToListAsync();
+
+            return list.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to get latest workout log for {Exercise} before {Date}",
+                exerciseName,
+                beforeDate
+            );
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Saves a workout log entry to the database (inserts if new, updates if existing).
     /// </summary>
     /// <param name="item">The workout log entry to save.</param>
