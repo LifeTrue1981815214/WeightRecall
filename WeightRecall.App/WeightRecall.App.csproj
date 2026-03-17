@@ -87,4 +87,8 @@
     <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Platforms\Android\Services\" />
+  </ItemGroup>
 </Project>

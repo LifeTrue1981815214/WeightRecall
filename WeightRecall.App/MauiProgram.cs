@@ -8,6 +8,9 @@ using WeightRecall.Repository;
 using WeightRecall.Services;
 using WeightRecall.ViewModels;
 using WeightRecall.Views;
+#if ANDROID
+using WeightRecall.Platforms.Android.Services;
+#endif
 
 namespace WeightRecall;
 
@@ -54,6 +57,11 @@ public static class MauiProgram
             .CreateLogger();
 
         MauiAppBuilder builder = MauiApp.CreateBuilder();
+#if ANDROID
+        builder.Services.AddSingleton<IChartService, ChartService>();
+#else
+        builder.Services.AddSingleton<IChartService, NullChartService>();
+#endif
         builder
             .UseMauiApp<App>()
             .UseMicrocharts()

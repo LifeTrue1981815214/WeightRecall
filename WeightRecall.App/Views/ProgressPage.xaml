@@ -38,7 +38,11 @@
             VerticalOptions="Center"
             IsVisible="{Binding IsHistoryAvailable}"
         >
-            <micro:ChartView Chart="{Binding ProgressChart}" HeightRequest="400" />
+            <micro:ChartView
+                Chart="{Binding ProgressChart}"
+                HeightRequest="400"
+                BackgroundColor="{AppThemeBinding Light=White, Dark=Black}"
+            />
         </Border>
 
         <Label
