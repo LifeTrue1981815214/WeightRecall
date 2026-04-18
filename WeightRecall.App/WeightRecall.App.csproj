@@ -91,4 +91,8 @@
   <ItemGroup>
     <Folder Include="Platforms\Android\Services\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WeightRecall.Core\WeightRecall.Core.csproj" />
+  </ItemGroup>
 </Project>

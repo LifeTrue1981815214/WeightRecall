@@ -12,6 +12,7 @@ public partial class App : Application
 {
     private readonly NotificationService _notificationService;
     private readonly ILogger<App> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="App"/> class.
@@ -19,11 +20,17 @@ public partial class App : Application
     /// </summary>
     /// <param name="notificationService">Service for managing notifications.</param>
     /// <param name="logger">Logger instance.</param>
-    public App(NotificationService notificationService, ILogger<App> logger)
+    /// <param name="serviceProvider">The DI service provider.</param>
+    public App(
+        NotificationService notificationService,
+        ILogger<App> logger,
+        IServiceProvider serviceProvider
+    )
     {
         InitializeComponent();
         _notificationService = notificationService;
         _logger = logger;
+        _serviceProvider = serviceProvider;
 
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
@@ -48,7 +55,7 @@ public partial class App : Application
         try
         {
             _logger.LogInformation("App starting...");
-            _ = await _notificationService.RequestNotificationPermission();
+            _ = await NotificationService.RequestNotificationPermission();
             await _notificationService.ScheduleDailyNotifications();
         }
         catch (Exception ex)
@@ -65,6 +72,6 @@ public partial class App : Application
     protected override Window CreateWindow(IActivationState? activationState)
     {
         _logger.LogInformation("Creating app window");
-        return new Window(new AppShell(_notificationService));
+        return new Window(_serviceProvider.GetRequiredService<AppShell>());
     }
 }

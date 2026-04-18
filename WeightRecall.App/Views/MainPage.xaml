@@ -4,7 +4,7 @@
     x:Class="WeightRecall.Views.MainPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:models="clr-namespace:WeightRecall.Models"
+    xmlns:models="clr-namespace:WeightRecall.Models;assembly=WeightRecall.Core"
     xmlns:viewmodels="clr-namespace:WeightRecall.ViewModels"
     xmlns:sys="clr-namespace:System;assembly=netstandard"
     Title="WeightRecall"
@@ -254,14 +254,23 @@
         </CollectionView>
 
         <VerticalStackLayout Grid.Row="2" Padding="20" Spacing="10">
-            <Button
-                Command="{Binding SaveLogsCommand}"
-                HorizontalOptions="Center"
-                Text="Save Changes"
-                WidthRequest="200"
-                BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
-                TextColor="{AppThemeBinding Light=White, Dark=Black}"
-            />
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                <Button
+                    Command="{Binding SaveLogsCommand}"
+                    Text="Save Changes"
+                    WidthRequest="200"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                    TextColor="{AppThemeBinding Light=White, Dark=Black}"
+                />
+                <Button
+                    Command="{Binding GoToTodayCommand}"
+                    Text="Today"
+                    WidthRequest="90"
+                    IsVisible="{Binding IsNotToday}"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                    TextColor="{AppThemeBinding Light=White, Dark=Black}"
+                />
+            </HorizontalStackLayout>
         </VerticalStackLayout>
 
         <ActivityIndicator

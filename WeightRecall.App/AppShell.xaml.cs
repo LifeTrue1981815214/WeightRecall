@@ -1,5 +1,4 @@
-﻿using WeightRecall.Services;
-using WeightRecall.Views;
+﻿using WeightRecall.Views;
 
 namespace WeightRecall;
 
@@ -8,52 +7,23 @@ namespace WeightRecall;
 /// </summary>
 public partial class AppShell : Shell
 {
-    private readonly NotificationService _notificationService;
+    private readonly SettingsPage _settingsPage;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AppShell"/> class.
-    /// Configures routing and initializes UI state from preferences.
+    /// Configures routing for shell navigation.
     /// </summary>
-    /// <param name="notificationService">Service for managing notifications.</param>
-    public AppShell(NotificationService notificationService)
+    /// <param name="settingsPage">The settings page to present as a modal.</param>
+    public AppShell(SettingsPage settingsPage)
     {
         InitializeComponent();
-        _notificationService = notificationService;
+        _settingsPage = settingsPage;
 
         Routing.RegisterRoute(nameof(ProgressPage), typeof(ProgressPage));
-
-        NotificationSwitch.IsToggled = Preferences.Default.Get("NotificationsEnabled", true);
     }
 
-    /// <summary>
-    /// Event handler for the notification toggle switch.
-    /// Updates preferences and schedules or cancels notifications accordingly.
-    /// </summary>
-    private async void OnNotificationToggled(object? sender, ToggledEventArgs e)
+    private async void OnSettingsClicked(object? sender, EventArgs e)
     {
-        Preferences.Default.Set("NotificationsEnabled", e.Value);
-
-        if (e.Value)
-        {
-            bool isAllowed = await _notificationService.RequestNotificationPermission();
-
-            if (!isAllowed)
-            {
-                await DisplayAlertAsync(
-                    "Notifications Disabled",
-                    "Please enable notifications in your device settings to receive daily exercise reminders.",
-                    "OK"
-                );
-
-                NotificationSwitch.Toggled -= OnNotificationToggled;
-                NotificationSwitch.IsToggled = false;
-                NotificationSwitch.Toggled += OnNotificationToggled;
-
-                Preferences.Default.Set("NotificationsEnabled", false);
-                return;
-            }
-        }
-
-        await _notificationService.ScheduleDailyNotifications();
+        await Navigation.PushModalAsync(_settingsPage);
     }
 }

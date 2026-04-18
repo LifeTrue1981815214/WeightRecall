@@ -18,6 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WeightRecall.App\WeightRecall.App.csproj" />
+    <ProjectReference Include="..\WeightRecall.Core\WeightRecall.Core.csproj" />
   </ItemGroup>
 </Project>

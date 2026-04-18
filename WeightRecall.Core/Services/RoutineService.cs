@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using WeightRecall.Models;
 using WeightRecall.Repository;
 
@@ -12,12 +12,12 @@ namespace WeightRecall.Services;
 /// <param name="logger">The logger instance for diagnostics.</param>
 public class RoutineService(
     RoutineRepository repository,
-    NotificationService notificationService,
+    IWorkoutNotificationService notificationService,
     ILogger<RoutineService> logger
 )
 {
     private readonly RoutineRepository _repository = repository;
-    private readonly NotificationService _notificationService = notificationService;
+    private readonly IWorkoutNotificationService _notificationService = notificationService;
     private readonly ILogger<RoutineService> _logger = logger;
 
     /// <summary>

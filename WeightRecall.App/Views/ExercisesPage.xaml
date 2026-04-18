@@ -4,7 +4,7 @@
     x:Class="WeightRecall.Views.ExercisesPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:models="clr-namespace:WeightRecall.Models"
+    xmlns:models="clr-namespace:WeightRecall.Models;assembly=WeightRecall.Core"
     xmlns:viewmodels="clr-namespace:WeightRecall.ViewModels"
     Title="Daily Routine"
     x:DataType="viewmodels:ExercisesViewModel"

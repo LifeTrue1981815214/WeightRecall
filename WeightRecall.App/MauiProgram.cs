@@ -8,9 +8,6 @@ using WeightRecall.Repository;
 using WeightRecall.Services;
 using WeightRecall.ViewModels;
 using WeightRecall.Views;
-#if ANDROID
-using WeightRecall.Platforms.Android.Services;
-#endif
 
 namespace WeightRecall;
 
@@ -27,19 +24,12 @@ public static class MauiProgram
     {
         string logBaseDir = FileSystem.AppDataDirectory;
 
-#if ANDROID
         Android.Content.Context context = Android.App.Application.Context;
         Java.IO.File? externalDir = context.GetExternalFilesDir(null);
         if (externalDir != null)
         {
             logBaseDir = externalDir.AbsolutePath;
         }
-#elif WINDOWS
-        logBaseDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "WeightRecall"
-        );
-#endif
 
         string logPath = Path.Combine(logBaseDir, "logs", "log.txt");
 
@@ -57,11 +47,7 @@ public static class MauiProgram
             .CreateLogger();
 
         MauiAppBuilder builder = MauiApp.CreateBuilder();
-#if ANDROID
         builder.Services.AddSingleton<IChartService, ChartService>();
-#else
-        builder.Services.AddSingleton<IChartService, NullChartService>();
-#endif
         builder
             .UseMauiApp<App>()
             .UseMicrocharts()
@@ -77,13 +63,23 @@ public static class MauiProgram
         builder.Logging.AddDebug();
 #endif
         // Register Services and Repositories for Dependency Injection
-        builder.Services.AddSingleton<DatabaseContext>();
+        builder.Services.AddSingleton<DatabaseContext>(sp => new DatabaseContext(
+            Path.Combine(FileSystem.AppDataDirectory, "WeightRecall.db3"),
+            sp.GetRequiredService<ILogger<DatabaseContext>>()
+        ));
         builder.Services.AddSingleton<RoutineRepository>();
         builder.Services.AddSingleton<RoutineService>();
         builder.Services.AddSingleton<WorkoutLogRepository>();
         builder.Services.AddSingleton<WorkoutLogService>();
         builder.Services.AddSingleton<NotificationService>();
+        builder.Services.AddSingleton<IWorkoutNotificationService>(sp =>
+            sp.GetRequiredService<NotificationService>()
+        );
         builder.Services.AddSingleton<DateService>();
+
+        // Register Shell and Settings
+        builder.Services.AddSingleton<SettingsPage>();
+        builder.Services.AddSingleton<AppShell>();
 
         // Register ViewModels
         builder.Services.AddTransient<MainViewModel>();

@@ -5,75 +5,93 @@ using WeightRecall.Repository;
 
 namespace WeightRecall.Services;
 
-/// <summary>
-/// Service for managing local notifications for exercise reminders.
-/// </summary>
-/// <param name="repository">The routine repository to fetch scheduled exercises.</param>
-/// <param name="logger">The logger instance for diagnostics.</param>
-public class NotificationService(RoutineRepository repository, ILogger<NotificationService> logger)
+public class NotificationService(
+    RoutineRepository routineRepository,
+    ILogger<NotificationService> logger
+) : IWorkoutNotificationService
 {
-    private readonly RoutineRepository _repository = repository;
+    private readonly RoutineRepository _routineRepository = routineRepository;
     private readonly ILogger<NotificationService> _logger = logger;
 
     /// <summary>
-    /// Requests the user's permission to display local notifications.
+    /// Requests POST_NOTIFICATIONS permission and, on Android 12+, SCHEDULE_EXACT_ALARM.
+    /// Opens system settings if the exact alarm permission is missing.
     /// </summary>
-    /// <returns>True if permission is granted, false otherwise.</returns>
-    public async Task<bool> RequestNotificationPermission()
+    public static async Task<bool> RequestNotificationPermission()
     {
-        _logger.LogInformation("Requesting notification permission");
-        return await LocalNotificationCenter.Current.RequestNotificationPermission();
+        if (!await LocalNotificationCenter.Current.RequestNotificationPermission())
+        {
+            return false;
+        }
+
+        // Android 12+ requires a separate permission to fire alarms at an exact time
+        if (OperatingSystem.IsAndroidVersionAtLeast(31) && !CanScheduleExactAlarms())
+        {
+            OpenExactAlarmSettings();
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
-    /// Schedules weekly notifications for each day that has exercises in the routine.
-    /// Notifications are cancelled and rescheduled to match current routine state.
+    /// Cancels all existing notifications, then schedules a weekly 10 AM notification
+    /// for every day that has exercises in the routine.
+    /// Does nothing if notifications are disabled in preferences or system settings.
     /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task ScheduleDailyNotifications()
     {
         try
         {
-            _logger.LogInformation("Scheduling daily notifications...");
             _ = LocalNotificationCenter.Current.CancelAll();
 
-            bool notificationsEnabled = Preferences.Default.Get("NotificationsEnabled", true);
-            if (!notificationsEnabled)
+            if (!Preferences.Default.Get("NotificationsEnabled", true))
             {
-                _logger.LogInformation("Notifications are disabled in preferences");
                 return;
             }
 
             if (!await LocalNotificationCenter.Current.AreNotificationsEnabled())
             {
-                _logger.LogWarning("Notifications are not enabled in system settings");
+                return;
+            }
+
+            if (OperatingSystem.IsAndroidVersionAtLeast(31) && !CanScheduleExactAlarms())
+            {
                 return;
             }
 
             foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
             {
-                List<RoutineItem> exercises = await _repository.GetRoutineForDayAsync(day);
+                List<RoutineItem> exercises = await _routineRepository.GetRoutineForDayAsync(day);
 
-                if (exercises.Count > 0)
+                if (exercises.Count == 0)
                 {
-                    string exerciseList = string.Join(", ", exercises.Select(e => e.ExerciseName));
+                    continue;
+                }
 
-                    NotificationRequest notification = new()
+                string exerciseNames = string.Join(", ", exercises.Select(e => e.ExerciseName));
+
+                _ = await LocalNotificationCenter.Current.Show(
+                    new NotificationRequest
                     {
                         NotificationId = (int)day + 100,
                         Title = "Today's Exercises",
-                        Description = $"{exerciseList}",
+                        Description = exerciseNames,
                         Schedule = new NotificationRequestSchedule
                         {
+#if DEBUG
+                            // Fire quickly and repeat every 5 min for easy testing
+                            NotifyTime = DateTime.Now.AddSeconds(30),
+                            RepeatType = NotificationRepeat.TimeInterval,
+                            NotifyRepeatInterval = TimeSpan.FromMinutes(5),
+#else
                             NotifyTime = GetNextOccurrence(day, 10, 0),
                             RepeatType = NotificationRepeat.Weekly,
+#endif
                         },
-                    };
-
-                    _ = await LocalNotificationCenter.Current.Show(notification);
-                }
+                    }
+                );
             }
-            _logger.LogInformation("Successfully updated daily notifications");
         }
         catch (Exception ex)
         {
@@ -82,12 +100,63 @@ public class NotificationService(RoutineRepository repository, ILogger<Notificat
     }
 
     /// <summary>
-    /// Calculates the next occurrence of a specific time on a given day of the week.
+    /// Returns true if the app is allowed to schedule exact alarms.
+    /// Always true on Android below 12, where the permission does not exist.
     /// </summary>
-    /// <param name="day">Target day of the week.</param>
-    /// <param name="hour">Target hour (24-hour format).</param>
-    /// <param name="minute">Target minute.</param>
-    /// <returns>The <see cref="DateTime"/> for the next occurrence.</returns>
+    private static bool CanScheduleExactAlarms()
+    {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(31))
+        {
+            return true;
+        }
+
+        return (
+                Android.App.Application.Context.GetSystemService(
+                    Android.Content.Context.AlarmService
+                ) as Android.App.AlarmManager
+            )?.CanScheduleExactAlarms() ?? false;
+    }
+
+    /// <summary>
+    /// Navigates the user to the exact alarm settings screen (Android 12+),
+    /// falling back to the app's general settings page if unavailable.
+    /// </summary>
+    private static void OpenExactAlarmSettings()
+    {
+        if (OperatingSystem.IsAndroidVersionAtLeast(31))
+        {
+            try
+            {
+                using Android.Content.Intent intent = new(
+                    Android.Provider.Settings.ActionRequestScheduleExactAlarm
+                );
+                _ = intent.AddFlags(Android.Content.ActivityFlags.NewTask);
+                Android.App.Application.Context.StartActivity(intent);
+                return;
+            }
+            catch { }
+        }
+
+        try
+        {
+            using Android.Content.Intent fallback = new(
+                Android.Provider.Settings.ActionApplicationDetailsSettings
+            );
+            _ = fallback.SetData(
+                Android.Net.Uri.Parse($"package:{Android.App.Application.Context.PackageName}")
+            );
+            _ = fallback.AddFlags(Android.Content.ActivityFlags.NewTask);
+            Android.App.Application.Context.StartActivity(fallback);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Returns the next DateTime when the given day of week occurs at the specified time.
+    /// If that slot already passed this week, returns the occurrence next week.
+    /// </summary>
+    // Used in release builds via the #else branch of the #if DEBUG block above
+#pragma warning disable IDE0051
     private static DateTime GetNextOccurrence(DayOfWeek day, int hour, int minute)
     {
         DateTime now = DateTime.Now;
@@ -95,6 +164,7 @@ public class NotificationService(RoutineRepository repository, ILogger<Notificat
 
         int daysUntil = ((int)day - (int)now.DayOfWeek + 7) % 7;
 
+        // If today is the target day but the time has already passed, push to next week
         if (daysUntil == 0 && now.TimeOfDay >= new TimeSpan(hour, minute, 0))
         {
             daysUntil = 7;
@@ -102,4 +172,5 @@ public class NotificationService(RoutineRepository repository, ILogger<Notificat
 
         return next.AddDays(daysUntil);
     }
+#pragma warning restore IDE0051
 }

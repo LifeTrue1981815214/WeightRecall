@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="WeightRecall.Core/WeightRecall.Core.csproj" />
   <Project Path="WeightRecall.App/WeightRecall.App.csproj" />
-  <!-- <Project Path="WeightRecall.Tests/WeightRecall.Tests.csproj" /> -->
+  <Project Path="WeightRecall.Tests/WeightRecall.Tests.csproj" />
 </Solution>

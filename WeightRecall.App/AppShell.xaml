@@ -15,14 +15,17 @@
                 FontAttributes="Bold"
                 FontSize="18"
             />
-            <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="5">
-                <Label Text="Notifications" VerticalOptions="Center" FontSize="12" />
-                <Switch
-                    x:Name="NotificationSwitch"
-                    Toggled="OnNotificationToggled"
-                    VerticalOptions="Center"
-                />
-            </HorizontalStackLayout>
+            <Button
+                Grid.Column="1"
+                Text="⚙"
+                FontSize="20"
+                BackgroundColor="Transparent"
+                TextColor="White"
+                BorderWidth="0"
+                Padding="8,0"
+                Clicked="OnSettingsClicked"
+                VerticalOptions="Center"
+            />
         </Grid>
     </Shell.TitleView>
 

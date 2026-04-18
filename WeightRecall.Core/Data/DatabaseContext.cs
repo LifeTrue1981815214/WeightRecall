@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SQLite;
 using WeightRecall.Models;
 
@@ -16,11 +16,11 @@ public class DatabaseContext
     /// <summary>
     /// Initializes a new instance of the <see cref="DatabaseContext"/> class.
     /// </summary>
+    /// <param name="databasePath">The full path to the SQLite database file.</param>
     /// <param name="logger">The logger instance for diagnostics.</param>
-    public DatabaseContext(ILogger<DatabaseContext> logger)
+    public DatabaseContext(string databasePath, ILogger<DatabaseContext> logger)
     {
         _logger = logger;
-        string databasePath = Path.Combine(FileSystem.AppDataDirectory, "WeightRecall.db3");
         _logger.LogInformation("Initializing database at {Path}", databasePath);
         Connection = new SQLiteAsyncConnection(databasePath);
     }

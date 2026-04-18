@@ -31,7 +31,13 @@ public partial class MainViewModel : ObservableObject
     /// Gets or sets the currently selected date for viewing/logging workouts.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotToday))]
     private DateTime _selectedDate = DateTime.Today;
+
+    /// <summary>
+    /// True when the selected date is not today, used to show the "Today" button.
+    /// </summary>
+    public bool IsNotToday => SelectedDate.Date != DateTime.Today;
 
     /// <summary>
     /// Gets or sets the Monday of the current week being displayed.
@@ -122,7 +128,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task ViewProgress(WorkoutLog log)
     {
-        await Shell.Current.GoToAsync($"{nameof(ProgressPage)}?ExerciseName={log.ExerciseName}");
+        await Shell.Current.GoToAsync(
+            $"{nameof(ProgressPage)}?ExerciseName={Uri.EscapeDataString(log.ExerciseName)}"
+        );
     }
 
     /// <summary>
@@ -151,6 +159,17 @@ public partial class MainViewModel : ObservableObject
         {
             _ = TodayExercises.Remove(log);
         }
+    }
+
+    /// <summary>
+    /// Command to jump back to today's date and scroll the week view to the current week.
+    /// </summary>
+    [RelayCommand]
+    public async Task GoToToday()
+    {
+        CurrentWeekMonday = _dateService.GetMonday(DateTime.Today);
+        GenerateWeek();
+        await SelectDate(DateTime.Today);
     }
 
     [RelayCommand]

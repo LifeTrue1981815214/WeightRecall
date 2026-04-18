@@ -1,9 +1,8 @@
 using Microcharts;
 using SkiaSharp;
 using WeightRecall.Models;
-using WeightRecall.Services;
 
-namespace WeightRecall.Platforms.Android.Services;
+namespace WeightRecall.Services;
 
 public class ChartService : IChartService
 {
