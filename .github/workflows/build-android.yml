@@ -16,6 +16,10 @@ jobs:
         with:
           fetch-tags: true
 
+      - name: Get commit message
+        id: commit
+        run: echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
       - name: Compute next version
         id: version
         run: |
@@ -67,6 +71,6 @@ jobs:
           tag_name: "v${{ steps.version.outputs.version }}"
           name: "WeightRecall v${{ steps.version.outputs.version }}"
           files: ${{ steps.find_apk.outputs.apk_path }}
-          generate_release_notes: true
+          body: ${{ steps.commit.outputs.message }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
