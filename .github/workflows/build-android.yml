@@ -16,29 +16,23 @@ jobs:
         with:
           fetch-tags: true
 
+      - name: Read version from csproj
+        id: version
+        run: |
+          VERSION=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' WeightRecall.App/WeightRecall.App.csproj)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Fail if tag already exists
+        run: |
+          if git tag -l "v${{ steps.version.outputs.version }}" | grep -q .; then
+            echo "ERROR: Tag v${{ steps.version.outputs.version }} already exists. Update ApplicationDisplayVersion in the csproj before pushing."
+            exit 1
+          fi
+
       - name: Get commit message
         id: commit
         run: echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
-
-      - name: Compute next version
-        id: version
-        run: |
-          # Read base version from csproj e.g. "0.9.7.1" -> base "0.9.7"
-          FULL=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' WeightRecall.App/WeightRecall.App.csproj)
-          BASE=$(echo "$FULL" | sed 's/\.[0-9]*$//')
-
-          # Find the highest existing tag for this base and increment
-          LATEST=$(git tag -l "v${BASE}.*" | sort -V | tail -1)
-          if [ -z "$LATEST" ]; then
-            NEXT=1
-          else
-            LAST=$(echo "$LATEST" | grep -oP '\d+$')
-            NEXT=$((LAST + 1))
-          fi
-
-          NEW_VERSION="${BASE}.${NEXT}"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Next version: $NEW_VERSION"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -48,13 +42,22 @@ jobs:
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android
 
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/keystore.jks
+
       - name: Build APK
         run: |
           dotnet publish WeightRecall.App/WeightRecall.App.csproj \
             -f net10.0-android \
             -c Release \
             -p:ApplicationDisplayVersion="${{ steps.version.outputs.version }}" \
-            -p:ApplicationVersion="${{ github.run_number }}"
+            -p:ApplicationVersion="${{ github.run_number }}" \
+            -p:AndroidKeyStore=true \
+            -p:AndroidSigningKeyStore="${{ github.workspace }}/keystore.jks" \
+            -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASS }}" \
+            -p:AndroidSigningStorePass="${{ secrets.ANDROID_STORE_PASS }}"
 
       - name: Find APK
         id: find_apk

@@ -28,6 +28,7 @@ out/
 # Keep your API keys and keystores out of source control!
 *.keystore
 *.jks
+*_b64.txt
 *.p12
 *.pfx
 *.cert
