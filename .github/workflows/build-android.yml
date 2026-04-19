@@ -1,0 +1,70 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Compute next version
+        id: version
+        run: |
+          # Read base version from csproj e.g. "0.9.7.1" -> base "0.9.7"
+          FULL=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' WeightRecall.App/WeightRecall.App.csproj)
+          BASE=$(echo "$FULL" | sed 's/\.[0-9]*$//')
+
+          # Find the highest existing tag for this base and increment
+          LATEST=$(git tag -l "v${BASE}.*" | sort -V | tail -1)
+          if [ -z "$LATEST" ]; then
+            NEXT=1
+          else
+            LAST=$(echo "$LATEST" | grep -oP '\d+$')
+            NEXT=$((LAST + 1))
+          fi
+
+          NEW_VERSION="${BASE}.${NEXT}"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Next version: $NEW_VERSION"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Build APK
+        run: |
+          dotnet publish WeightRecall.App/WeightRecall.App.csproj \
+            -f net10.0-android \
+            -c Release \
+            -p:ApplicationDisplayVersion="${{ steps.version.outputs.version }}" \
+            -p:ApplicationVersion="${{ github.run_number }}"
+
+      - name: Find APK
+        id: find_apk
+        run: |
+          SIGNED=$(find . -name "*-Signed.apk" | head -1)
+          APK=$(find . -name "*.apk" | head -1)
+          FINAL=${SIGNED:-$APK}
+          echo "apk_path=$FINAL" >> $GITHUB_OUTPUT
+          echo "Found APK: $FINAL"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "WeightRecall v${{ steps.version.outputs.version }}"
+          files: ${{ steps.find_apk.outputs.apk_path }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

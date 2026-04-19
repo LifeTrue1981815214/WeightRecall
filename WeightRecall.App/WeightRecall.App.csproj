@@ -31,8 +31,8 @@
     <ApplicationId>com.companyname.weightrecall</ApplicationId>
 
     <!-- Versions -->
-    <ApplicationDisplayVersion>0.9.7.1</ApplicationDisplayVersion>
-    <ApplicationVersion>9</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>10</ApplicationVersion>
 
     <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
     <WindowsPackageType>None</WindowsPackageType>
