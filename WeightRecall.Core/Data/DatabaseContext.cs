@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SQLite;
 using WeightRecall.Models;
 
@@ -7,9 +8,10 @@ namespace WeightRecall.Data;
 /// <summary>
 /// Provides access to the SQLite database and handles its initialization.
 /// </summary>
-public class DatabaseContext
+public class DatabaseContext : IAsyncDisposable
 {
     private bool _isInitialized;
+
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ILogger<DatabaseContext> _logger;
 
@@ -23,6 +25,19 @@ public class DatabaseContext
         _logger = logger;
         _logger.LogInformation("Initializing database at {Path}", databasePath);
         Connection = new SQLiteAsyncConnection(databasePath);
+    }
+
+    public DatabaseContext(string tempDbPath)
+    {
+        _logger = NullLogger<DatabaseContext>.Instance;
+        Connection = new SQLiteAsyncConnection(tempDbPath);
+    }
+
+    public static async Task<DatabaseContext> CreateForTestingAsync()
+    {
+        DatabaseContext context = new(":memory:");
+        await context.InitializeAsync();
+        return context;
     }
 
     /// <summary>
@@ -68,4 +83,11 @@ public class DatabaseContext
     /// Gets the SQLite asynchronous connection.
     /// </summary>
     public SQLiteAsyncConnection Connection { get; }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Connection != null)
+            await Connection.CloseAsync();
+        _semaphore.Dispose();
+    }
 }

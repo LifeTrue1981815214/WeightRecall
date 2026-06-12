@@ -1,0 +1,39 @@
+Repository Layer (against a real in-memory/temp SQLite DB)
+WorkoutLogRepository
+
+Save a new log (Id=0) → verify it gets inserted with a new Id
+Save an existing log (Id>0) → verify it updates in place
+GetWorkoutLogForDateAsync returns only logs matching the given date
+GetLatestLogForExerciseAsync returns the most recent log before the given date, not after
+GetLogsForExerciseInDateRangeAsync returns only logs within the bounds (inclusive/exclusive edge cases)
+Deleting a log removes it from subsequent queries
+RoutineRepository
+
+GetRoutineForDayAsync returns only items for the requested day, sorted by Order
+Adding two items for the same day and different days → each day query returns correct subset
+Delete removes only the target item
+Service Layer (repositories wired to a real temp DB)
+RoutineService
+
+Adding an item with an empty name throws/fails validation
+After AddRoutineItemAsync, calling ReorderRoutineItemsAsync produces sequential 1-based ordering
+Moving an item to a different day (ApplyRoutineChangesAsync with oldDay) removes it from the old day and reorders both days
+DeleteRoutineItemAndReorderAsync leaves remaining items with gapless order
+Each mutating operation calls IWorkoutNotificationService.ScheduleDailyNotifications() (mock the notification service)
+WorkoutLogService
+
+GetDailyWorkoutLogsAsync merges routine exercises with existing logs for that date
+GetDailyWorkoutLogsAsync populates PreviousDescription from the same exercise logged the previous week
+GetDailyWorkoutLogsAsync includes routine exercises that have no existing logs (weight/sets/reps = 0)
+SaveWorkoutLogsAsync skips entries where weight, sets, and reps are all 0
+GetExerciseProgressHistoryAsync groups multiple logs on the same day by max weight only
+GetExerciseProgressLastMonth returns nothing older than 30 days
+DateService
+
+GetMonday returns Monday for mid-week, Monday itself, and Sunday edge cases
+GetDaysOfWeek returns exactly 7 consecutive days starting on Monday
+Cross-Layer / End-to-End Flows
+Full routine setup → workout log: Add exercises to Monday routine → call GetDailyWorkoutLogsAsync on a Monday → exercises appear with empty logs
+Previous week context: Log a workout on Day N → call GetDailyWorkoutLogsAsync on Day N+7 → PreviousDescription reflects Day N data
+Progress chart data: Insert 5 logs for the same exercise across 3 dates (multiple on one date) → GetExerciseProgressHistoryAsync returns 3 points with correct max weights
+The most valuable tests to write first would be WorkoutLogService.GetDailyWorkoutLogsAsync and RoutineService reordering — these contain the most complex business logic that's easy to break silently.
