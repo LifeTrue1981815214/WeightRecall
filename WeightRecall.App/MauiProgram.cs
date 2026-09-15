@@ -67,9 +67,15 @@ public static class MauiProgram
             Path.Combine(FileSystem.AppDataDirectory, "WeightRecall.db3"),
             sp.GetRequiredService<ILogger<DatabaseContext>>()
         ));
-        builder.Services.AddSingleton<RoutineRepository>();
-        builder.Services.AddSingleton<RoutineService>();
+        builder.Services.AddSingleton<PlannedExerciseRepository>();
+        builder.Services.AddSingleton<IPlannedExerciseRepository>(sp =>
+            sp.GetRequiredService<PlannedExerciseRepository>()
+        );
+        builder.Services.AddSingleton<PlannedExerciseService>();
         builder.Services.AddSingleton<WorkoutLogRepository>();
+        builder.Services.AddSingleton<IWorkoutLogRepository>(sp =>
+            sp.GetRequiredService<WorkoutLogRepository>()
+        );
         builder.Services.AddSingleton<WorkoutLogService>();
         builder.Services.AddSingleton<NotificationService>();
         builder.Services.AddSingleton<IWorkoutNotificationService>(sp =>

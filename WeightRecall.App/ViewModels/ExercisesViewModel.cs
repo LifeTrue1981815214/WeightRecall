@@ -10,24 +10,27 @@ namespace WeightRecall.ViewModels;
 
 /// <summary>
 /// ViewModel for managing the workout routine exercises.
-/// Allows adding, editing, and deleting routine items for different days of the week.
+/// Allows adding, editing, and deleting planned exercises for different days of the week.
 /// </summary>
 public partial class ExercisesViewModel : ObservableObject
 {
-    private readonly RoutineService _routineService;
+    private readonly PlannedExerciseService _plannedExerciseService;
     private readonly ILogger<ExercisesViewModel> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExercisesViewModel"/> class.
     /// </summary>
-    /// <param name="routineService">Service for routine business logic.</param>
+    /// <param name="plannedExerciseService">Service for planned exercise business logic.</param>
     /// <param name="logger">The logger instance for diagnostics.</param>
-    public ExercisesViewModel(RoutineService routineService, ILogger<ExercisesViewModel> logger)
+    public ExercisesViewModel(
+        PlannedExerciseService plannedExerciseService,
+        ILogger<ExercisesViewModel> logger
+    )
     {
-        _routineService = routineService;
+        _plannedExerciseService = plannedExerciseService;
         _logger = logger;
         _selectedDay = DateTime.Today.DayOfWeek;
-        _ = LoadRoutineItemsAsync();
+        _ = LoadPlannedExercisesAsync();
     }
 
     /// <summary>
@@ -43,15 +46,15 @@ public partial class ExercisesViewModel : ObservableObject
     public bool IsNotBusy => !IsBusy;
 
     /// <summary>
-    /// Gets the collection of routine items for the selected day.
+    /// Gets the collection of planned exercises for the selected day.
     /// </summary>
-    public ObservableCollection<RoutineItem> RoutineItems { get; } = [];
+    public ObservableCollection<PlannedExercise> PlannedExercises { get; } = [];
 
     /// <summary>
     /// Gets or sets a value indicating whether the "Add/Edit" popup is currently visible.
     /// </summary>
     [ObservableProperty]
-    private bool _isAddingRoutine;
+    private bool _isAddingPlannedExercise;
 
     /// <summary>
     /// Gets or sets a value indicating whether the current operation is an edit (true) or an add (false).
@@ -59,7 +62,7 @@ public partial class ExercisesViewModel : ObservableObject
     [ObservableProperty]
     private bool _isEditing;
 
-    private RoutineItem? _editingItem;
+    private PlannedExercise? _editingExercise;
 
     /// <summary>
     /// Gets the title for the entry popup based on the current mode (Add/Edit).
@@ -75,27 +78,27 @@ public partial class ExercisesViewModel : ObservableObject
     /// Command to display the popup in "Add" mode.
     /// </summary>
     [RelayCommand]
-    private void ShowAddRoutine()
+    private void ShowAddPlannedExercise()
     {
         IsEditing = false;
-        IsAddingRoutine = true;
+        IsAddingPlannedExercise = true;
         OnPropertyChanged(nameof(PopupTitle));
         OnPropertyChanged(nameof(PopupButtonText));
     }
 
     /// <summary>
-    /// Command to display the popup in "Edit" mode for a specific routine item.
+    /// Command to display the popup in "Edit" mode for a specific planned exercise.
     /// </summary>
-    /// <param name="item">The routine item to edit.</param>
+    /// <param name="exercise">The planned exercise to edit.</param>
     [RelayCommand]
-    private void ShowEditRoutine(RoutineItem item)
+    private void ShowEditPlannedExercise(PlannedExercise exercise)
     {
-        _editingItem = item;
-        NewExerciseName = item.ExerciseName;
-        NewOrder = item.Order.ToString();
-        SelectedDay = item.DayOfWeek;
+        _editingExercise = exercise;
+        NewExerciseName = exercise.ExerciseName;
+        NewOrder = exercise.Order.ToString();
+        SelectedDay = exercise.DayOfWeek;
         IsEditing = true;
-        IsAddingRoutine = true;
+        IsAddingPlannedExercise = true;
         OnPropertyChanged(nameof(PopupTitle));
         OnPropertyChanged(nameof(PopupButtonText));
     }
@@ -104,40 +107,41 @@ public partial class ExercisesViewModel : ObservableObject
     /// Command to hide the entry popup and reset fields.
     /// </summary>
     [RelayCommand]
-    private void HideAddRoutine()
+    private void HideAddPlannedExercise()
     {
-        IsAddingRoutine = false;
+        IsAddingPlannedExercise = false;
         IsEditing = false;
-        _editingItem = null;
+        _editingExercise = null;
         NewExerciseName = string.Empty;
         NewOrder = string.Empty;
     }
 
     /// <summary>
-    /// Command to fetch routine items from the service for the currently selected day.
+    /// Command to fetch planned exercises from the service for the currently selected day.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
     [RelayCommand]
-    public async Task LoadRoutineItemsAsync()
+    public async Task LoadPlannedExercisesAsync()
     {
         try
         {
-            _logger.LogInformation("Loading routine items for {Day}", SelectedDay);
-            List<RoutineItem> items = await _routineService.GetRoutineForDay(SelectedDay);
+            _logger.LogInformation("Loading planned exercises for {Day}", SelectedDay);
+            List<PlannedExercise> exercises =
+                await _plannedExerciseService.GetPlannedExercisesForDayAsync(SelectedDay);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                RoutineItems.Clear();
-                foreach (RoutineItem item in items)
+                PlannedExercises.Clear();
+                foreach (PlannedExercise exercise in exercises)
                 {
-                    RoutineItems.Add(item);
+                    PlannedExercises.Add(exercise);
                 }
             });
-            _logger.LogInformation("Loaded {Count} routine items", items.Count);
+            _logger.LogInformation("Loaded {Count} planned exercises", exercises.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load routine items for {Day}", SelectedDay);
+            _logger.LogError(ex, "Failed to load planned exercises for {Day}", SelectedDay);
             await Shell.Current.DisplayAlertAsync(
                 "Error",
                 $"Failed to load routine: {ex.Message}",
@@ -147,15 +151,17 @@ public partial class ExercisesViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ViewProgress(RoutineItem item)
+    private async Task ViewProgress(PlannedExercise exercise)
     {
-        await Shell.Current.GoToAsync($"{nameof(ProgressPage)}?ExerciseName={item.ExerciseName}");
+        await Shell.Current.GoToAsync(
+            $"{nameof(ProgressPage)}?ExerciseName={exercise.ExerciseName}"
+        );
     }
 
     [RelayCommand]
-    private async Task DeleteRoutineItemAsync(RoutineItem item)
+    private async Task DeletePlannedExerciseAsync(PlannedExercise exercise)
     {
-        if (item == null || IsBusy)
+        if (exercise == null || IsBusy)
         {
             return;
         }
@@ -172,22 +178,22 @@ public partial class ExercisesViewModel : ObservableObject
             if (answer)
             {
                 _logger.LogInformation(
-                    "Deleting routine item {Id} - {Name}",
-                    item.Id,
-                    item.ExerciseName
+                    "Deleting planned exercise {Id} - {Name}",
+                    exercise.Id,
+                    exercise.ExerciseName
                 );
-                await _routineService.DeleteRoutineItemAndReorderAsync(item);
-                await LoadRoutineItemsAsync();
+                _ = await _plannedExerciseService.DeletePlannedExerciseAsync(exercise);
+                await LoadPlannedExercisesAsync();
                 await Shell.Current.DisplayAlertAsync(
-                    "Item Removed",
-                    "The routine item had been deleted",
+                    "Exercise Removed",
+                    "The planned exercise had been deleted",
                     "OK"
                 );
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete routine item {Id}", item.Id);
+            _logger.LogError(ex, "Failed to delete planned exercise {Id}", exercise.Id);
             await Shell.Current.DisplayAlertAsync("Error", $"Failed to delete: {ex.Message}", "OK");
         }
         finally
@@ -204,7 +210,7 @@ public partial class ExercisesViewModel : ObservableObject
 
     partial void OnSelectedDayChanged(DayOfWeek value)
     {
-        _ = LoadRoutineItemsAsync();
+        _ = LoadPlannedExercisesAsync();
     }
 
     [ObservableProperty]
@@ -214,7 +220,7 @@ public partial class ExercisesViewModel : ObservableObject
     private string _newOrder = string.Empty;
 
     [RelayCommand]
-    private async Task SaveRoutineAsync()
+    private async Task SavePlannedExerciseAsync()
     {
         if (IsBusy || !int.TryParse(NewOrder, out int order))
         {
@@ -227,33 +233,33 @@ public partial class ExercisesViewModel : ObservableObject
             DayOfWeek targetDay = SelectedDay;
             DayOfWeek? oldDay = null;
 
-            if (IsEditing && _editingItem != null)
+            if (IsEditing && _editingExercise != null)
             {
-                _logger.LogInformation("Updating routine item {Id}", _editingItem.Id);
-                oldDay = _editingItem.DayOfWeek;
-                _editingItem.ExerciseName = NewExerciseName;
-                _editingItem.Order = order;
-                _editingItem.DayOfWeek = targetDay;
-                await _routineService.ApplyRoutineChangesAsync(_editingItem, oldDay);
+                _logger.LogInformation("Updating planned exercise {Id}", _editingExercise.Id);
+                oldDay = _editingExercise.DayOfWeek;
+                _editingExercise.ExerciseName = NewExerciseName;
+                _editingExercise.Order = order;
+                _editingExercise.DayOfWeek = targetDay;
+                await _plannedExerciseService.SavePlannedExerciseAsync(_editingExercise, oldDay);
             }
             else
             {
-                _logger.LogInformation("Adding new routine item: {Name}", NewExerciseName);
-                RoutineItem item = new()
+                _logger.LogInformation("Adding new planned exercise: {Name}", NewExerciseName);
+                PlannedExercise exercise = new()
                 {
                     ExerciseName = NewExerciseName,
                     Order = order,
                     DayOfWeek = targetDay,
                 };
-                await _routineService.ApplyRoutineChangesAsync(item);
+                await _plannedExerciseService.SavePlannedExerciseAsync(exercise);
             }
 
-            await LoadRoutineItemsAsync();
-            HideAddRoutine();
+            await LoadPlannedExercisesAsync();
+            HideAddPlannedExercise();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save routine item");
+            _logger.LogError(ex, "Failed to save planned exercise");
             await Shell.Current.DisplayAlertAsync("Database Error", ex.Message, "OK");
         }
         finally

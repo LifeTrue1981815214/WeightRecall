@@ -10,7 +10,7 @@
     x:DataType="viewmodels:ExercisesViewModel"
 >
     <ContentPage.ToolbarItems>
-        <ToolbarItem Command="{Binding ShowAddRoutineCommand}" Text="+" />
+        <ToolbarItem Command="{Binding ShowAddPlannedExerciseCommand}" Text="+" />
     </ContentPage.ToolbarItems>
 
     <Grid BackgroundColor="{AppThemeBinding Light=White, Dark=Black}">
@@ -56,7 +56,7 @@
                 Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
             />
 
-            <CollectionView ItemsSource="{Binding RoutineItems}">
+            <CollectionView ItemsSource="{Binding PlannedExercises}">
                 <CollectionView.EmptyView>
                     <Label
                         FontAttributes="Italic"
@@ -67,7 +67,7 @@
                     />
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:RoutineItem">
+                    <DataTemplate x:DataType="models:PlannedExercise">
                         <Border
                             Margin="0,5"
                             Padding="10"
@@ -102,7 +102,7 @@
                                 <Button
                                     Grid.Column="2"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ExercisesViewModel}}, Path=ShowEditRoutineCommand}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ExercisesViewModel}}, Path=ShowEditPlannedExerciseCommand}"
                                     CommandParameter="{Binding .}"
                                     CornerRadius="10"
                                     HeightRequest="40"
@@ -113,7 +113,7 @@
                                 <Button
                                     Grid.Column="3"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ExercisesViewModel}}, Path=DeleteRoutineItemCommand}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ExercisesViewModel}}, Path=DeletePlannedExerciseCommand}"
                                     CommandParameter="{Binding .}"
                                     CornerRadius="10"
                                     HeightRequest="40"
@@ -128,7 +128,11 @@
             </CollectionView>
         </VerticalStackLayout>
 
-        <Grid Padding="20" BackgroundColor="#80000000" IsVisible="{Binding IsAddingRoutine}">
+        <Grid
+            Padding="20"
+            BackgroundColor="#80000000"
+            IsVisible="{Binding IsAddingPlannedExercise}"
+        >
             <Border
                 BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray950}}"
                 HorizontalOptions="Center"
@@ -195,12 +199,12 @@
                     <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
                         <Button
                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
-                            Command="{Binding HideAddRoutineCommand}"
+                            Command="{Binding HideAddPlannedExerciseCommand}"
                             Text="Cancel"
                             TextColor="{AppThemeBinding Light=Black, Dark=White}"
                         />
                         <Button
-                            Command="{Binding SaveRoutineCommand}"
+                            Command="{Binding SavePlannedExerciseCommand}"
                             Text="{Binding PopupButtonText}"
                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
                             TextColor="{AppThemeBinding Light=White, Dark=Black}"

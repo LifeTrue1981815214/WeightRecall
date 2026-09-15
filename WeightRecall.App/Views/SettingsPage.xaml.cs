@@ -13,11 +13,17 @@ internal sealed class ExportData
 {
     public int Version { get; set; } = 1;
     public DateTime ExportedAt { get; set; }
-    public List<RoutineItemExport> RoutineItems { get; set; } = [];
+
+    // "RoutineItems" is the on-disk name from before the rename to PlannedExercise, and is
+    // pinned on purpose: it is the wire format of every backup users have already exported.
+    // Changing it would not fail loudly -- those backups would simply restore with no routine.
+    // The TXT format pins the same name; see ExportAsTxtAsync and ParseTxt.
+    [JsonPropertyName("RoutineItems")]
+    public List<PlannedExerciseExport> PlannedExercises { get; set; } = [];
     public List<WorkoutLogExport> WorkoutLogs { get; set; } = [];
 }
 
-internal sealed class RoutineItemExport
+internal sealed class PlannedExerciseExport
 {
     public string ExerciseName { get; set; } = string.Empty;
     public DayOfWeek DayOfWeek { get; set; }
@@ -189,11 +195,12 @@ public partial class SettingsPage : ContentPage
         ExportData data = await BuildExportDataAsync();
         StringBuilder sb = new();
 
+        // Section header pinned for the same reason as ExportData.PlannedExercises' JSON key.
         sb.AppendLine("[RoutineItems]");
         sb.AppendLine("ExerciseName,DayOfWeek,Order");
-        foreach (RoutineItemExport r in data.RoutineItems)
+        foreach (PlannedExerciseExport e in data.PlannedExercises)
         {
-            sb.AppendLine($"{CsvEscape(r.ExerciseName)},{r.DayOfWeek},{r.Order}");
+            sb.AppendLine($"{CsvEscape(e.ExerciseName)},{e.DayOfWeek},{e.Order}");
         }
 
         sb.AppendLine();
@@ -216,8 +223,8 @@ public partial class SettingsPage : ContentPage
     private async Task<ExportData> BuildExportDataAsync()
     {
         await _databaseContext.InitializeAsync();
-        List<RoutineItem> routineItems = await _databaseContext
-            .Connection.Table<RoutineItem>()
+        List<PlannedExercise> plannedExercises = await _databaseContext
+            .Connection.Table<PlannedExercise>()
             .ToListAsync();
         List<WorkoutLog> workoutLogs = await _databaseContext
             .Connection.Table<WorkoutLog>()
@@ -226,12 +233,12 @@ public partial class SettingsPage : ContentPage
         return new ExportData
         {
             ExportedAt = DateTime.UtcNow,
-            RoutineItems = routineItems
-                .Select(r => new RoutineItemExport
+            PlannedExercises = plannedExercises
+                .Select(e => new PlannedExerciseExport
                 {
-                    ExerciseName = r.ExerciseName,
-                    DayOfWeek = r.DayOfWeek,
-                    Order = r.Order,
+                    ExerciseName = e.ExerciseName,
+                    DayOfWeek = e.DayOfWeek,
+                    Order = e.Order,
                 })
                 .ToList(),
             WorkoutLogs = workoutLogs
@@ -358,14 +365,14 @@ public partial class SettingsPage : ContentPage
     {
         await _databaseContext.InitializeAsync();
         await _databaseContext.Connection.DeleteAllAsync<WorkoutLog>();
-        await _databaseContext.Connection.DeleteAllAsync<RoutineItem>();
+        await _databaseContext.Connection.DeleteAllAsync<PlannedExercise>();
 
         await _databaseContext.Connection.InsertAllAsync(
-            data.RoutineItems.Select(r => new RoutineItem
+            data.PlannedExercises.Select(e => new PlannedExercise
             {
-                ExerciseName = r.ExerciseName,
-                DayOfWeek = r.DayOfWeek,
-                Order = r.Order,
+                ExerciseName = e.ExerciseName,
+                DayOfWeek = e.DayOfWeek,
+                Order = e.Order,
             })
         );
 
@@ -397,6 +404,7 @@ public partial class SettingsPage : ContentPage
                 continue;
             }
 
+            // Reads the pinned pre-rename section name; see ExportData.PlannedExercises.
             if (line == "[RoutineItems]")
             {
                 section = "RoutineItems";
@@ -420,8 +428,8 @@ public partial class SettingsPage : ContentPage
 
             if (section == "RoutineItems" && parts.Length >= 3)
             {
-                data.RoutineItems.Add(
-                    new RoutineItemExport
+                data.PlannedExercises.Add(
+                    new PlannedExerciseExport
                     {
                         ExerciseName = parts[0],
                         DayOfWeek = Enum.Parse<DayOfWeek>(parts[1]),

@@ -10,6 +10,7 @@ namespace WeightRecall.Repository;
 /// <param name="context">The database context for data access.</param>
 /// <param name="logger">The logger instance for diagnostics.</param>
 public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRepository> logger)
+    : IWorkoutLogRepository
 {
     private readonly DatabaseContext _context = context;
     private readonly ILogger<WorkoutLogRepository> _logger = logger;
@@ -177,6 +178,39 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
                 exerciseName,
                 startDate,
                 endDate
+            );
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<int> RenameExerciseAsync(string previousName, string newName)
+    {
+        try
+        {
+            SQLite.SQLiteAsyncConnection connection = await GetConnectionAsync();
+            int moved = await connection.ExecuteAsync(
+                "UPDATE WorkoutLogs SET ExerciseName = ? WHERE ExerciseName = ?",
+                newName,
+                previousName
+            );
+
+            _logger.LogInformation(
+                "Moved {Count} workout log(s) from {Previous} to {New}",
+                moved,
+                previousName,
+                newName
+            );
+
+            return moved;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to move workout logs from {Previous} to {New}",
+                previousName,
+                newName
             );
             throw;
         }

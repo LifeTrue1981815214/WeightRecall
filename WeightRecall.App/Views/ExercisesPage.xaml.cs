@@ -25,7 +25,7 @@ public partial class ExercisesPage : ContentPage
         base.OnAppearing();
         if (BindingContext is ExercisesViewModel viewModel)
         {
-            _ = viewModel.LoadRoutineItemsAsync();
+            _ = viewModel.LoadPlannedExercisesAsync();
         }
     }
 

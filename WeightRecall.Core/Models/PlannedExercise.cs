@@ -3,13 +3,17 @@ using SQLite;
 namespace WeightRecall.Models;
 
 /// <summary>
-/// Represents an exercise within a weekly workout routine.
+/// Represents an exercise planned for a given day within the weekly workout routine.
 /// </summary>
+/// <remarks>
+/// The table name predates the rename from "RoutineItem" and is pinned deliberately:
+/// changing it would orphan the rows in every already-installed copy of the app.
+/// </remarks>
 [Table("RoutineItems")]
-public class RoutineItem
+public class PlannedExercise
 {
     /// <summary>
-    /// Gets or sets the unique identifier for the routine item.
+    /// Gets or sets the unique identifier for the planned exercise.
     /// </summary>
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
@@ -25,7 +29,7 @@ public class RoutineItem
     public DayOfWeek DayOfWeek { get; set; }
 
     /// <summary>
-    /// Gets or sets the display order of the exercise within the routine for a specific day.
+    /// Gets or sets the position of the exercise within that day, starting at 1.
     /// </summary>
     public int Order { get; set; }
 }

@@ -6,11 +6,12 @@ using WeightRecall.Repository;
 namespace WeightRecall.Services;
 
 public class NotificationService(
-    RoutineRepository routineRepository,
+    IPlannedExerciseRepository plannedExerciseRepository,
     ILogger<NotificationService> logger
 ) : IWorkoutNotificationService
 {
-    private readonly RoutineRepository _routineRepository = routineRepository;
+    private readonly IPlannedExerciseRepository _plannedExerciseRepository =
+        plannedExerciseRepository;
     private readonly ILogger<NotificationService> _logger = logger;
 
     /// <summary>
@@ -62,7 +63,8 @@ public class NotificationService(
 
             foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
             {
-                List<RoutineItem> exercises = await _routineRepository.GetRoutineForDayAsync(day);
+                List<PlannedExercise> exercises =
+                    await _plannedExerciseRepository.GetPlannedExercisesForDayAsync(day);
 
                 if (exercises.Count == 0)
                 {

@@ -55,7 +55,7 @@ If you wish to build the project yourself:
 
 ## Project Structure
 
-- **Models/**: Data entities (`WorkoutLog`, `RoutineItem`, etc.).
+- **Models/**: Data entities (`WorkoutLog`, `PlannedExercise`, etc.).
 - **Data/**: Database context and initialization.
 - **Repository/**: Data access layer using SQLite.
 - **Services/**: Business logic, notifications, and date utilities.

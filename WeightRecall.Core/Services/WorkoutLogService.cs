@@ -8,16 +8,17 @@ namespace WeightRecall.Services;
 /// Service for managing workout logs and computing exercise progress.
 /// </summary>
 /// <param name="repository">The workout log repository.</param>
-/// <param name="routineRepository">The routine repository to cross-reference exercises.</param>
+/// <param name="plannedExerciseRepository">The planned exercise repository to cross-reference exercises.</param>
 /// <param name="logger">The logger instance for diagnostics.</param>
 public class WorkoutLogService(
-    WorkoutLogRepository repository,
-    RoutineRepository routineRepository,
+    IWorkoutLogRepository repository,
+    IPlannedExerciseRepository plannedExerciseRepository,
     ILogger<WorkoutLogService> logger
 )
 {
-    private readonly WorkoutLogRepository _repository = repository;
-    private readonly RoutineRepository _routineRepository = routineRepository;
+    private readonly IWorkoutLogRepository _repository = repository;
+    private readonly IPlannedExerciseRepository _plannedExerciseRepository =
+        plannedExerciseRepository;
     private readonly ILogger<WorkoutLogService> _logger = logger;
 
     /// <summary>
@@ -62,9 +63,8 @@ public class WorkoutLogService(
     public async Task<List<WorkoutLog>> GetDailyWorkoutLogsAsync(DateTime selectedDate)
     {
         // 1. Get the routine definition for this day of the week
-        List<RoutineItem> routine = await _routineRepository.GetRoutineForDayAsync(
-            selectedDate.DayOfWeek
-        );
+        List<PlannedExercise> routine =
+            await _plannedExerciseRepository.GetPlannedExercisesForDayAsync(selectedDate.DayOfWeek);
 
         // 2. Get any existing logs already saved for this specific date
         List<WorkoutLog> existingLogsForDay = await _repository.GetWorkoutLogForDateAsync(
@@ -73,16 +73,16 @@ public class WorkoutLogService(
 
         List<WorkoutLog> result = [];
 
-        foreach (RoutineItem item in routine)
+        foreach (PlannedExercise planned in routine)
         {
             // Check if the user already started/saved this exercise today
             WorkoutLog? existingLog = existingLogsForDay.FirstOrDefault(l =>
-                l.ExerciseName.Equals(item.ExerciseName, StringComparison.OrdinalIgnoreCase)
+                l.ExerciseName.Equals(planned.ExerciseName, StringComparison.OrdinalIgnoreCase)
             );
 
             // 3. Get the MOST RECENT log before today (regardless of how many days ago)
             WorkoutLog? prevLog = await _repository.GetLatestLogForExerciseAsync(
-                item.ExerciseName,
+                planned.ExerciseName,
                 selectedDate.Date.AddDays(-1) // Ensures we don't pick up "today" as "previous"
             );
 
@@ -104,7 +104,7 @@ public class WorkoutLogService(
                     new WorkoutLog
                     {
                         Date = selectedDate.Date,
-                        ExerciseName = item.ExerciseName,
+                        ExerciseName = planned.ExerciseName,
                         Weight = 0,
                         Sets = 0,
                         Reps = 0,
