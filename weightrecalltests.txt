@@ -39,6 +39,17 @@ Renaming an exercise carries its logged history with it (logs are keyed by name,
     must not take the logs away from the Thursday one
   - a case-only rename ("dips" -> "Dips") still moves the logs, since the log lookup compares
     names with SQL `=`, which is case-sensitive
+ExerciseRenamePolicy (pure, no DB needed -- the two rules above, reachable without setting up rows)
+
+IsRename is false for an unchanged name and for a null previous name
+IsRename is TRUE for a case-only change ("dips" -> "Dips") -- the log lookup uses SQL `=`, which
+  is case-sensitive, so treating these as equal would strand the history
+ShouldMoveHistory is true when no other planned exercise answers to the old name
+ShouldMoveHistory is FALSE when another day still uses it (Monday renamed, Thursday still
+  training "Bench Press" -- the logs belong to Thursday too)
+The renamed exercise never blocks its own move: it is excluded by Id, even if the row passed in
+  still carries the old name
+
 PlannedExerciseOrdering.AssignSequentialPositions (pure, no DB needed)
 
 Gaps are closed: positions 1,5,9 become 1,2,3

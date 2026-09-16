@@ -151,12 +151,9 @@ public class PlannedExerciseService(
 
         int result = await _repository.UpdatePlannedExerciseAsync(exercise);
 
-        if (
-            previousName is not null
-            && !string.Equals(previousName, exercise.ExerciseName, StringComparison.Ordinal)
-        )
+        if (ExerciseRenamePolicy.IsRename(previousName, exercise.ExerciseName))
         {
-            await CarryHistoryToNewNameAsync(previousName, exercise);
+            await CarryHistoryToNewNameAsync(previousName!, exercise);
         }
 
         return result;
@@ -166,17 +163,8 @@ public class PlannedExerciseService(
     /// Moves logged history from an exercise's previous name onto its new one.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Logs are associated with an exercise by name rather than by id, which is deliberate: the
-    /// same movement planned on two different days is two rows but one training history. The
-    /// cost is that a rename would otherwise strand every past log under the old name, so the
-    /// rename has to be followed through to the logs.
-    /// </para>
-    /// <para>
-    /// Skipped when another planned exercise still carries the previous name, since that history
-    /// belongs to it too and moving it would take the logs away from an exercise that is still
-    /// using them.
-    /// </para>
+    /// Whether the history moves at all is decided by <see cref="ExerciseRenamePolicy"/>; this
+    /// method only fetches what that decision needs and carries it out.
     /// </remarks>
     /// <param name="previousName">The name the exercise was stored under.</param>
     /// <param name="renamed">The exercise as it is now named.</param>
@@ -184,12 +172,8 @@ public class PlannedExerciseService(
     private async Task CarryHistoryToNewNameAsync(string previousName, PlannedExercise renamed)
     {
         List<PlannedExercise> planned = await _repository.GetPlannedExercisesAsync();
-        bool previousNameStillPlanned = planned.Any(e =>
-            e.Id != renamed.Id
-            && string.Equals(e.ExerciseName, previousName, StringComparison.Ordinal)
-        );
 
-        if (previousNameStillPlanned)
+        if (!ExerciseRenamePolicy.ShouldMoveHistory(planned, renamed, previousName))
         {
             _logger.LogInformation(
                 "Keeping history under {Previous}: another planned exercise still uses that name",
