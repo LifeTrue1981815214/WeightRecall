@@ -6,11 +6,18 @@ namespace WeightRecall.Models;
 /// <summary>
 /// Represents a logged entry for a specific exercise performed during a workout.
 /// </summary>
+/// <remarks>
+/// The table name predates the rename to ExerciseLog and is pinned deliberately: sqlite-net
+/// derives it from the C# name, so changing it would orphan the rows in every already-installed
+/// copy of the app.
+/// TODO: unpin this as part of a schema migration, so the stored name matches the C# one.
+/// Until that migration exists, leave the attribute alone.
+/// </remarks>
 [Table("WorkoutLogs")]
-public partial class WorkoutLog : ObservableObject
+public partial class ExerciseLog : ObservableObject
 {
     /// <summary>
-    /// Gets or sets the unique identifier for the workout log entry.
+    /// Gets or sets the unique identifier for the exercise log entry.
     /// </summary>
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }

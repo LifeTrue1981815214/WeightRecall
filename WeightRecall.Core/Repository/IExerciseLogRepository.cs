@@ -3,45 +3,45 @@ using WeightRecall.Models;
 namespace WeightRecall.Repository;
 
 /// <summary>
-/// Abstraction over persistence of workout logs, so callers can be tested
+/// Abstraction over persistence of exercise logs, so callers can be tested
 /// without a real database.
 /// </summary>
-public interface IWorkoutLogRepository
+public interface IExerciseLogRepository
 {
     /// <summary>
-    /// Retrieves all workout logs.
+    /// Retrieves all exercise logs.
     /// </summary>
-    /// <returns>A list of all <see cref="WorkoutLog"/> entries.</returns>
-    Task<List<WorkoutLog>> GetWorkoutLogsAsync();
+    /// <returns>A list of all <see cref="ExerciseLog"/> entries.</returns>
+    Task<List<ExerciseLog>> GetExerciseLogsAsync();
 
     /// <summary>
-    /// Retrieves workout logs for a specific date.
+    /// Retrieves exercise logs for a specific date.
     /// </summary>
     /// <param name="date">The date to retrieve logs for.</param>
-    /// <returns>A list of <see cref="WorkoutLog"/> entries for the specified date.</returns>
-    Task<List<WorkoutLog>> GetWorkoutLogForDateAsync(DateTime date);
+    /// <returns>A list of <see cref="ExerciseLog"/> entries for the specified date.</returns>
+    Task<List<ExerciseLog>> GetExerciseLogForDateAsync(DateTime date);
 
     /// <summary>
-    /// Retrieves the most recent workout log for an exercise on or before the specified date.
+    /// Retrieves the most recent exercise log for an exercise on or before the specified date.
     /// </summary>
     /// <param name="exerciseName">The exercise name.</param>
     /// <param name="beforeDate">The latest date to consider (inclusive).</param>
-    /// <returns>The latest <see cref="WorkoutLog"/> or null if none found.</returns>
-    Task<WorkoutLog?> GetLatestLogForExerciseAsync(string exerciseName, DateTime beforeDate);
+    /// <returns>The latest <see cref="ExerciseLog"/> or null if none found.</returns>
+    Task<ExerciseLog?> GetLatestLogForExerciseAsync(string exerciseName, DateTime beforeDate);
 
     /// <summary>
-    /// Saves a workout log entry (inserts if new, updates if existing).
+    /// Saves an exercise log entry (inserts if new, updates if existing).
     /// </summary>
-    /// <param name="item">The workout log entry to save.</param>
+    /// <param name="item">The exercise log entry to save.</param>
     /// <returns>The number of rows affected.</returns>
-    Task<int> SaveWorkoutLogAsync(WorkoutLog item);
+    Task<int> SaveExerciseLogAsync(ExerciseLog item);
 
     /// <summary>
-    /// Deletes a workout log entry.
+    /// Deletes an exercise log entry.
     /// </summary>
-    /// <param name="item">The workout log entry to delete.</param>
+    /// <param name="item">The exercise log entry to delete.</param>
     /// <returns>The number of rows affected.</returns>
-    Task<int> DeleteWorkoutLogAsync(WorkoutLog item);
+    Task<int> DeleteExerciseLogAsync(ExerciseLog item);
 
     /// <summary>
     /// Retrieves logs for a specific exercise within a given date range.
@@ -49,8 +49,8 @@ public interface IWorkoutLogRepository
     /// <param name="exerciseName">The name of the exercise.</param>
     /// <param name="startDate">The start of the date range.</param>
     /// <param name="endDate">The end of the date range.</param>
-    /// <returns>A list of matching <see cref="WorkoutLog"/> entries.</returns>
-    Task<List<WorkoutLog>> GetLogsForExerciseInDateRangeAsync(
+    /// <returns>A list of matching <see cref="ExerciseLog"/> entries.</returns>
+    Task<List<ExerciseLog>> GetLogsForExerciseInDateRangeAsync(
         string exerciseName,
         DateTime startDate,
         DateTime endDate

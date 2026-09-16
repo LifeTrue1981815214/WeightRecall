@@ -78,7 +78,7 @@ public class DatabaseContext : IAsyncDisposable
 
             _logger.LogInformation("Creating database tables...");
             _ = await Connection.CreateTableAsync<PlannedExercise>();
-            _ = await Connection.CreateTableAsync<WorkoutLog>();
+            _ = await Connection.CreateTableAsync<ExerciseLog>();
 
             _isInitialized = true;
             _logger.LogInformation("Database tables created successfully.");

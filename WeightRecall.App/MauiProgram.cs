@@ -72,11 +72,11 @@ public static class MauiProgram
             sp.GetRequiredService<PlannedExerciseRepository>()
         );
         builder.Services.AddSingleton<PlannedExerciseService>();
-        builder.Services.AddSingleton<WorkoutLogRepository>();
-        builder.Services.AddSingleton<IWorkoutLogRepository>(sp =>
-            sp.GetRequiredService<WorkoutLogRepository>()
+        builder.Services.AddSingleton<ExerciseLogRepository>();
+        builder.Services.AddSingleton<IExerciseLogRepository>(sp =>
+            sp.GetRequiredService<ExerciseLogRepository>()
         );
-        builder.Services.AddSingleton<WorkoutLogService>();
+        builder.Services.AddSingleton<ExerciseLogService>();
         builder.Services.AddSingleton<NotificationService>();
         builder.Services.AddSingleton<IWorkoutNotificationService>(sp =>
             sp.GetRequiredService<NotificationService>()

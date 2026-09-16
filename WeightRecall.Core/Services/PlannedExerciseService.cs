@@ -13,18 +13,18 @@ namespace WeightRecall.Services;
 /// deliberately do neither, so they can be composed without redundant work.
 /// </remarks>
 /// <param name="repository">The planned exercise repository.</param>
-/// <param name="workoutLogRepository">The workout log repository, so renames carry their history.</param>
+/// <param name="exerciseLogRepository">The exercise log repository, so renames carry their history.</param>
 /// <param name="notificationService">The notification service to sync reminders.</param>
 /// <param name="logger">The logger instance for diagnostics.</param>
 public class PlannedExerciseService(
     IPlannedExerciseRepository repository,
-    IWorkoutLogRepository workoutLogRepository,
+    IExerciseLogRepository exerciseLogRepository,
     IWorkoutNotificationService notificationService,
     ILogger<PlannedExerciseService> logger
 )
 {
     private readonly IPlannedExerciseRepository _repository = repository;
-    private readonly IWorkoutLogRepository _workoutLogRepository = workoutLogRepository;
+    private readonly IExerciseLogRepository _exerciseLogRepository = exerciseLogRepository;
     private readonly IWorkoutNotificationService _notificationService = notificationService;
     private readonly ILogger<PlannedExerciseService> _logger = logger;
 
@@ -198,7 +198,7 @@ public class PlannedExerciseService(
             return;
         }
 
-        _ = await _workoutLogRepository.RenameExerciseAsync(previousName, renamed.ExerciseName);
+        _ = await _exerciseLogRepository.RenameExerciseAsync(previousName, renamed.ExerciseName);
     }
 
     /// <summary>

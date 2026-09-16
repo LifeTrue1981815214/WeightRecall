@@ -9,18 +9,18 @@ using WeightRecall.Views;
 namespace WeightRecall.ViewModels;
 
 /// <summary>
-/// ViewModel for the main page, managing daily workout logs and weekly navigation.
+/// ViewModel for the main page, managing daily exercise logs and weekly navigation.
 /// </summary>
 public partial class MainViewModel : ObservableObject
 {
-    private readonly WorkoutLogService _workoutLogService;
+    private readonly ExerciseLogService _exerciseLogService;
     private readonly DateService _dateService;
     private readonly ILogger<MainViewModel> _logger;
 
     /// <summary>
     /// Gets the collection of logged exercises for the selected date.
     /// </summary>
-    public ObservableCollection<WorkoutLog> TodayExercises { get; } = [];
+    public ObservableCollection<ExerciseLog> TodayExercises { get; } = [];
 
     /// <summary>
     /// Gets the collection of dates for the current week.
@@ -54,16 +54,16 @@ public partial class MainViewModel : ObservableObject
     /// <summary>
     /// Initializes a new instance of the <see cref="MainViewModel"/> class.
     /// </summary>
-    /// <param name="workoutLogService">Service for workout logs.</param>
+    /// <param name="exerciseLogService">Service for exercise logs.</param>
     /// <param name="dateService">Service for date utilities.</param>
     /// <param name="logger">Logger instance.</param>
     public MainViewModel(
-        WorkoutLogService workoutLogService,
+        ExerciseLogService exerciseLogService,
         DateService dateService,
         ILogger<MainViewModel> logger
     )
     {
-        _workoutLogService = workoutLogService;
+        _exerciseLogService = exerciseLogService;
         _dateService = dateService;
         _logger = logger;
         _currentWeekMonday = _dateService.GetMonday(DateTime.Today);
@@ -123,10 +123,10 @@ public partial class MainViewModel : ObservableObject
     /// <summary>
     /// Command to navigate to the progress chart for a specific exercise.
     /// </summary>
-    /// <param name="log">The workout log containing the exercise name.</param>
+    /// <param name="log">The exercise log containing the exercise name.</param>
     /// <returns>A task representing the asynchronous navigation.</returns>
     [RelayCommand]
-    public async Task ViewProgress(WorkoutLog log)
+    public async Task ViewProgress(ExerciseLog log)
     {
         await Shell.Current.GoToAsync(
             $"{nameof(ProgressPage)}?ExerciseName={Uri.EscapeDataString(log.ExerciseName)}"
@@ -134,12 +134,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Command to delete a workout log entry.
+    /// Command to delete an exercise log entry.
     /// </summary>
     /// <param name="log">The log entry to delete.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     [RelayCommand]
-    public async Task DeleteLog(WorkoutLog log)
+    public async Task DeleteLog(ExerciseLog log)
     {
         if (log.Id != 0)
         {
@@ -151,7 +151,7 @@ public partial class MainViewModel : ObservableObject
             );
             if (confirm)
             {
-                _ = await _workoutLogService.DeleteWorkoutLog(log);
+                _ = await _exerciseLogService.DeleteExerciseLog(log);
                 _ = TodayExercises.Remove(log);
             }
         }
@@ -183,7 +183,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             IsBusy = true;
-            await _workoutLogService.SaveWorkoutLogsAsync(TodayExercises);
+            await _exerciseLogService.SaveExerciseLogsAsync(TodayExercises);
             await Shell.Current.DisplayAlertAsync(
                 "Saved",
                 "Recent workout progress has been saved.",
@@ -210,8 +210,10 @@ public partial class MainViewModel : ObservableObject
             _logger.LogInformation("Loading exercises for {SelectedDate}", SelectedDate);
             TodayExercises.Clear();
 
-            List<WorkoutLog> logs = await _workoutLogService.GetDailyWorkoutLogsAsync(SelectedDate);
-            foreach (WorkoutLog log in logs)
+            List<ExerciseLog> logs = await _exerciseLogService.GetDailyExerciseLogsAsync(
+                SelectedDate
+            );
+            foreach (ExerciseLog log in logs)
             {
                 TodayExercises.Add(log);
             }

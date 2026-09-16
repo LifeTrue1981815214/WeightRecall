@@ -6,11 +6,11 @@ parallel, so tests then see each other's rows and one test's dispose drops the t
 A single test class hides this; it appears as soon as a second class is added.
 
 Repository Layer (against a real in-memory/temp SQLite DB)
-WorkoutLogRepository
+ExerciseLogRepository
 
 Save a new log (Id=0) → verify it gets inserted with a new Id
 Save an existing log (Id>0) → verify it updates in place
-GetWorkoutLogForDateAsync returns only logs matching the given date
+GetExerciseLogForDateAsync returns only logs matching the given date
 GetLatestLogForExerciseAsync returns the most recent log before the given date, not after
 GetLogsForExerciseInDateRangeAsync returns only logs within the bounds (inclusive/exclusive edge cases)
 Deleting a log removes it from subsequent queries
@@ -31,7 +31,7 @@ SavePlannedExerciseAsync passes the saved exercise as `preferred`, so the order 
   typed is the position it ends up in
 Renaming an exercise carries its logged history with it (logs are keyed by name, so without
   this the history is stranded and the exercise appears to start from zero):
-  - rename via UpdatePlannedExerciseAsync moves every matching WorkoutLog to the new name
+  - rename via UpdatePlannedExerciseAsync moves every matching ExerciseLog to the new name
   - rename via SavePlannedExerciseAsync (the path the UI actually uses) does the same
   - editing only Position or DayOfWeek leaves the logs completely untouched
   - history is NOT moved when another planned exercise still uses the old name -- e.g. the same
@@ -53,12 +53,12 @@ An unsaved `preferred` (Id = 0) is still matched, by reference
 Only the exercises whose Position actually changed are returned
 An already-sequential list returns no changes (so no redundant DB writes)
 An empty list returns no changes
-WorkoutLogService
+ExerciseLogService
 
-GetDailyWorkoutLogsAsync merges routine exercises with existing logs for that date
-GetDailyWorkoutLogsAsync populates PreviousDescription from the same exercise logged the previous week
-GetDailyWorkoutLogsAsync includes routine exercises that have no existing logs (weight/sets/reps = 0)
-SaveWorkoutLogsAsync skips entries where weight, sets, and reps are all 0
+GetDailyExerciseLogsAsync merges routine exercises with existing logs for that date
+GetDailyExerciseLogsAsync populates PreviousDescription from the same exercise logged the previous week
+GetDailyExerciseLogsAsync includes routine exercises that have no existing logs (weight/sets/reps = 0)
+SaveExerciseLogsAsync skips entries where weight, sets, and reps are all 0
 GetExerciseProgressHistoryAsync groups multiple logs on the same day by max weight only
 GetExerciseProgressLastMonth returns nothing older than 30 days
 DateService
@@ -66,7 +66,7 @@ DateService
 GetMonday returns Monday for mid-week, Monday itself, and Sunday edge cases
 GetDaysOfWeek returns exactly 7 consecutive days starting on Monday
 Cross-Layer / End-to-End Flows
-Full routine setup → workout log: Add exercises to Monday routine → call GetDailyWorkoutLogsAsync on a Monday → exercises appear with empty logs
-Previous week context: Log a workout on Day N → call GetDailyWorkoutLogsAsync on Day N+7 → PreviousDescription reflects Day N data
+Full routine setup → workout log: Add exercises to Monday routine → call GetDailyExerciseLogsAsync on a Monday → exercises appear with empty logs
+Previous week context: Log a workout on Day N → call GetDailyExerciseLogsAsync on Day N+7 → PreviousDescription reflects Day N data
 Progress chart data: Insert 5 logs for the same exercise across 3 dates (multiple on one date) → GetExerciseProgressHistoryAsync returns 3 points with correct max weights
-The most valuable tests to write first would be WorkoutLogService.GetDailyWorkoutLogsAsync and PlannedExerciseOrdering — these contain the most complex business logic that's easy to break silently.
+The most valuable tests to write first would be ExerciseLogService.GetDailyExerciseLogsAsync and PlannedExerciseOrdering — these contain the most complex business logic that's easy to break silently.

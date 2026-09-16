@@ -5,15 +5,15 @@ using WeightRecall.Models;
 namespace WeightRecall.Repository;
 
 /// <summary>
-/// Repository for managing workout logs in the database.
+/// Repository for managing exercise logs in the database.
 /// </summary>
 /// <param name="context">The database context for data access.</param>
 /// <param name="logger">The logger instance for diagnostics.</param>
-public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRepository> logger)
-    : IWorkoutLogRepository
+public class ExerciseLogRepository(DatabaseContext context, ILogger<ExerciseLogRepository> logger)
+    : IExerciseLogRepository
 {
     private readonly DatabaseContext _context = context;
-    private readonly ILogger<WorkoutLogRepository> _logger = logger;
+    private readonly ILogger<ExerciseLogRepository> _logger = logger;
 
     private async Task<SQLite.SQLiteAsyncConnection> GetConnectionAsync()
     {
@@ -22,58 +22,58 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
     }
 
     /// <summary>
-    /// Retrieves all workout logs from the database.
+    /// Retrieves all exercise logs from the database.
     /// </summary>
-    /// <returns>A list of all <see cref="WorkoutLog"/> entries.</returns>
-    public async Task<List<WorkoutLog>> GetWorkoutLogsAsync()
+    /// <returns>A list of all <see cref="ExerciseLog"/> entries.</returns>
+    public async Task<List<ExerciseLog>> GetExerciseLogsAsync()
     {
         try
         {
-            return await (await GetConnectionAsync()).Table<WorkoutLog>().ToListAsync();
+            return await (await GetConnectionAsync()).Table<ExerciseLog>().ToListAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get workout logs");
+            _logger.LogError(ex, "Failed to get exercise logs");
             throw;
         }
     }
 
     /// <summary>
-    /// Retrieves workout logs for a specific date.
+    /// Retrieves exercise logs for a specific date.
     /// </summary>
     /// <param name="date">The date to retrieve logs for.</param>
-    /// <returns>A list of <see cref="WorkoutLog"/> entries for the specified date.</returns>
-    public async Task<List<WorkoutLog>> GetWorkoutLogForDateAsync(DateTime date)
+    /// <returns>A list of <see cref="ExerciseLog"/> entries for the specified date.</returns>
+    public async Task<List<ExerciseLog>> GetExerciseLogForDateAsync(DateTime date)
     {
         try
         {
             return await (await GetConnectionAsync())
-                .Table<WorkoutLog>()
+                .Table<ExerciseLog>()
                 .Where(r => r.Date == date)
                 .ToListAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get workout logs for {Date}", date);
+            _logger.LogError(ex, "Failed to get exercise logs for {Date}", date);
             throw;
         }
     }
 
     /// <summary>
-    /// Retrieves the most recent workout log for an exercise on or before the specified date.
+    /// Retrieves the most recent exercise log for an exercise on or before the specified date.
     /// </summary>
     /// <param name="exerciseName">The exercise name.</param>
     /// <param name="beforeDate">The latest date to consider (inclusive).</param>
-    /// <returns>The latest <see cref="WorkoutLog"/> or null if none found.</returns>
-    public async Task<WorkoutLog?> GetLatestLogForExerciseAsync(
+    /// <returns>The latest <see cref="ExerciseLog"/> or null if none found.</returns>
+    public async Task<ExerciseLog?> GetLatestLogForExerciseAsync(
         string exerciseName,
         DateTime beforeDate
     )
     {
         try
         {
-            List<WorkoutLog> list = await (await GetConnectionAsync())
-                .Table<WorkoutLog>()
+            List<ExerciseLog> list = await (await GetConnectionAsync())
+                .Table<ExerciseLog>()
                 .Where(w => w.ExerciseName == exerciseName && w.Date <= beforeDate)
                 .OrderByDescending(w => w.Date)
                 .Take(1)
@@ -85,7 +85,7 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         {
             _logger.LogError(
                 ex,
-                "Failed to get latest workout log for {Exercise} before {Date}",
+                "Failed to get latest exercise log for {Exercise} before {Date}",
                 exerciseName,
                 beforeDate
             );
@@ -94,11 +94,11 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
     }
 
     /// <summary>
-    /// Saves a workout log entry to the database (inserts if new, updates if existing).
+    /// Saves an exercise log entry to the database (inserts if new, updates if existing).
     /// </summary>
-    /// <param name="item">The workout log entry to save.</param>
+    /// <param name="item">The exercise log entry to save.</param>
     /// <returns>The number of rows affected.</returns>
-    public async Task<int> SaveWorkoutLogAsync(WorkoutLog item)
+    public async Task<int> SaveExerciseLogAsync(ExerciseLog item)
     {
         try
         {
@@ -106,7 +106,7 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
             if (item.Id == 0)
             {
                 _logger.LogInformation(
-                    "Inserting new workout log for {Exercise}",
+                    "Inserting new exercise log for {Exercise}",
                     item.ExerciseName
                 );
                 return await connection.InsertAsync(item);
@@ -114,7 +114,7 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
             else
             {
                 _logger.LogInformation(
-                    "Updating workout log {Id} for {Exercise}",
+                    "Updating exercise log {Id} for {Exercise}",
                     item.Id,
                     item.ExerciseName
                 );
@@ -123,26 +123,26 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save workout log for {Exercise}", item.ExerciseName);
+            _logger.LogError(ex, "Failed to save exercise log for {Exercise}", item.ExerciseName);
             throw;
         }
     }
 
     /// <summary>
-    /// Deletes a workout log entry from the database.
+    /// Deletes an exercise log entry from the database.
     /// </summary>
-    /// <param name="item">The workout log entry to delete.</param>
+    /// <param name="item">The exercise log entry to delete.</param>
     /// <returns>The number of rows affected.</returns>
-    public async Task<int> DeleteWorkoutLogAsync(WorkoutLog item)
+    public async Task<int> DeleteExerciseLogAsync(ExerciseLog item)
     {
         try
         {
-            _logger.LogInformation("Deleting workout log {Id}", item.Id);
+            _logger.LogInformation("Deleting exercise log {Id}", item.Id);
             return await (await GetConnectionAsync()).DeleteAsync(item);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete workout log {Id}", item.Id);
+            _logger.LogError(ex, "Failed to delete exercise log {Id}", item.Id);
             throw;
         }
     }
@@ -153,8 +153,8 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
     /// <param name="exerciseName">The name of the exercise.</param>
     /// <param name="startDate">The start of the date range.</param>
     /// <param name="endDate">The end of the date range.</param>
-    /// <returns>A list of matching <see cref="WorkoutLog"/> entries.</returns>
-    public async Task<List<WorkoutLog>> GetLogsForExerciseInDateRangeAsync(
+    /// <returns>A list of matching <see cref="ExerciseLog"/> entries.</returns>
+    public async Task<List<ExerciseLog>> GetLogsForExerciseInDateRangeAsync(
         string exerciseName,
         DateTime startDate,
         DateTime endDate
@@ -163,7 +163,7 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         try
         {
             return await (await GetConnectionAsync())
-                .Table<WorkoutLog>()
+                .Table<ExerciseLog>()
                 .Where(w =>
                     w.ExerciseName == exerciseName && w.Date >= startDate && w.Date <= endDate
                 )
@@ -190,13 +190,13 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         {
             SQLite.SQLiteAsyncConnection connection = await GetConnectionAsync();
             int moved = await connection.ExecuteAsync(
-                "UPDATE WorkoutLogs SET ExerciseName = ? WHERE ExerciseName = ?",
+                "UPDATE ExerciseLogs SET ExerciseName = ? WHERE ExerciseName = ?",
                 newName,
                 previousName
             );
 
             _logger.LogInformation(
-                "Moved {Count} workout log(s) from {Previous} to {New}",
+                "Moved {Count} exercise log(s) from {Previous} to {New}",
                 moved,
                 previousName,
                 newName
@@ -208,7 +208,7 @@ public class WorkoutLogRepository(DatabaseContext context, ILogger<WorkoutLogRep
         {
             _logger.LogError(
                 ex,
-                "Failed to move workout logs from {Previous} to {New}",
+                "Failed to move exercise logs from {Previous} to {New}",
                 previousName,
                 newName
             );

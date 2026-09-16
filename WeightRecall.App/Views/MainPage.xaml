@@ -130,7 +130,7 @@
                 />
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:WorkoutLog">
+                <DataTemplate x:DataType="models:ExerciseLog">
                     <Border
                         Margin="0,5"
                         Padding="15"

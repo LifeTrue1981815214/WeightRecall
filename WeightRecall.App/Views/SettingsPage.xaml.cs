@@ -20,7 +20,12 @@ internal sealed class ExportData
     // The TXT format pins the same name; see ExportAsTxtAsync and ParseTxt.
     [JsonPropertyName("RoutineItems")]
     public List<PlannedExerciseExport> PlannedExercises { get; set; } = [];
-    public List<WorkoutLogExport> WorkoutLogs { get; set; } = [];
+
+    // Pinned for the same reason as PlannedExercises above: "WorkoutLogs" is the name in every
+    // backup users have already exported, and the TXT section header matches it.
+    // TODO: unpin when the backup format gets a version bump that can migrate old files.
+    [JsonPropertyName("WorkoutLogs")]
+    public List<ExerciseLogExport> ExerciseLogs { get; set; } = [];
 }
 
 internal sealed class PlannedExerciseExport
@@ -35,7 +40,7 @@ internal sealed class PlannedExerciseExport
     public int Position { get; set; }
 }
 
-internal sealed class WorkoutLogExport
+internal sealed class ExerciseLogExport
 {
     public DateTime Date { get; set; }
     public string ExerciseName { get; set; } = string.Empty;
@@ -211,7 +216,7 @@ public partial class SettingsPage : ContentPage
         sb.AppendLine();
         sb.AppendLine("[WorkoutLogs]");
         sb.AppendLine("Date,ExerciseName,Sets,Reps,Weight");
-        foreach (WorkoutLogExport w in data.WorkoutLogs)
+        foreach (ExerciseLogExport w in data.ExerciseLogs)
         {
             sb.AppendLine(
                 FormattableString.Invariant(
@@ -231,8 +236,8 @@ public partial class SettingsPage : ContentPage
         List<PlannedExercise> plannedExercises = await _databaseContext
             .Connection.Table<PlannedExercise>()
             .ToListAsync();
-        List<WorkoutLog> workoutLogs = await _databaseContext
-            .Connection.Table<WorkoutLog>()
+        List<ExerciseLog> exerciseLogs = await _databaseContext
+            .Connection.Table<ExerciseLog>()
             .ToListAsync();
 
         return new ExportData
@@ -246,8 +251,8 @@ public partial class SettingsPage : ContentPage
                     Position = e.Position,
                 })
                 .ToList(),
-            WorkoutLogs = workoutLogs
-                .Select(w => new WorkoutLogExport
+            ExerciseLogs = exerciseLogs
+                .Select(w => new ExerciseLogExport
                 {
                     Date = w.Date,
                     ExerciseName = w.ExerciseName,
@@ -369,7 +374,7 @@ public partial class SettingsPage : ContentPage
     private async Task ApplyImportDataAsync(ExportData data)
     {
         await _databaseContext.InitializeAsync();
-        await _databaseContext.Connection.DeleteAllAsync<WorkoutLog>();
+        await _databaseContext.Connection.DeleteAllAsync<ExerciseLog>();
         await _databaseContext.Connection.DeleteAllAsync<PlannedExercise>();
 
         await _databaseContext.Connection.InsertAllAsync(
@@ -382,7 +387,7 @@ public partial class SettingsPage : ContentPage
         );
 
         await _databaseContext.Connection.InsertAllAsync(
-            data.WorkoutLogs.Select(w => new WorkoutLog
+            data.ExerciseLogs.Select(w => new ExerciseLog
             {
                 Date = w.Date,
                 ExerciseName = w.ExerciseName,
@@ -444,8 +449,8 @@ public partial class SettingsPage : ContentPage
             }
             else if (section == "WorkoutLogs" && parts.Length >= 5)
             {
-                data.WorkoutLogs.Add(
-                    new WorkoutLogExport
+                data.ExerciseLogs.Add(
+                    new ExerciseLogExport
                     {
                         Date = DateTime.Parse(parts[0], CultureInfo.InvariantCulture),
                         ExerciseName = parts[1],

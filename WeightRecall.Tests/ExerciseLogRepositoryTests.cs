@@ -6,17 +6,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 using Microsoft.Extensions.Logging.Abstractions; // NullLogger — a no-op logger so we don't need a real one in tests
 using WeightRecall.Data; // DatabaseContext
-using WeightRecall.Models; // WorkoutLog
-using WeightRecall.Repository; // WorkoutLogRepository
+using WeightRecall.Models; // ExerciseLog
+using WeightRecall.Repository; // ExerciseLogRepository
 
 namespace WeightRecall.Tests;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GROUP RELATED TESTS IN ONE CLASS.
-// All tests for WorkoutLogRepository live here. Each public method on the
+// All tests for ExerciseLogRepository live here. Each public method on the
 // repository should get its own test method (or several, one per scenario).
 // ─────────────────────────────────────────────────────────────────────────────
-public class WorkoutLogRepositoryTests
+public class ExerciseLogRepositoryTests
 {
     // ─────────────────────────────────────────────────────────────────────────
     // TEST METHOD NAMING CONVENTION:
@@ -27,7 +27,7 @@ public class WorkoutLogRepositoryTests
     // with multiple different inputs.
     // ─────────────────────────────────────────────────────────────────────────
     [Fact]
-    public async Task SaveWorkoutLogAsync_WithIdZero_InsertsLogAndGeneratesNewId()
+    public async Task SaveExerciseLogAsync_WithIdZero_InsertsLogAndGeneratesNewId()
     {
         // ── ARRANGE ──────────────────────────────────────────────────────────
         // "Arrange" means: set up everything the test needs before calling the
@@ -44,11 +44,11 @@ public class WorkoutLogRepositoryTests
         // It satisfies the ILogger<T> parameter without requiring a real logger.
         // Use this pattern whenever the class under test needs a logger but the
         // log output is not what you are testing.
-        WorkoutLogRepository repository = new(context, NullLogger<WorkoutLogRepository>.Instance);
+        ExerciseLogRepository repository = new(context, NullLogger<ExerciseLogRepository>.Instance);
 
         // Build the object you will pass to the method under test.
         // Id = 0 tells the repository this is a NEW record (not an update).
-        WorkoutLog newLog = new()
+        ExerciseLog newLog = new()
         {
             Id = 0,
             ExerciseName = "Bench Press",
@@ -58,7 +58,7 @@ public class WorkoutLogRepositoryTests
         // ── ACT ───────────────────────────────────────────────────────────────
         // "Act" means: call exactly the one method you are testing.
         // Capture the return value so you can assert on it below.
-        int rowsAffected = await repository.SaveWorkoutLogAsync(newLog);
+        int rowsAffected = await repository.SaveExerciseLogAsync(newLog);
 
         // ── ASSERT ────────────────────────────────────────────────────────────
         // "Assert" means: verify the outcome matches what you expected.
@@ -75,8 +75,8 @@ public class WorkoutLogRepositoryTests
         // Round-trip check: fetch all logs from the DB and confirm the record
         // is actually there with the correct data — not just that the method
         // returned the right number.
-        List<WorkoutLog> allLogs = await repository.GetWorkoutLogsAsync();
-        WorkoutLog? savedLog = allLogs.FirstOrDefault(l => l.Id == newLog.Id);
+        List<ExerciseLog> allLogs = await repository.GetExerciseLogsAsync();
+        ExerciseLog? savedLog = allLogs.FirstOrDefault(l => l.Id == newLog.Id);
 
         // Assert.NotNull fails the test if savedLog is null, which would mean
         // the record was never persisted.
@@ -85,16 +85,16 @@ public class WorkoutLogRepositoryTests
     }
 
     [Fact]
-    public async Task SaveWorkoutLogAsync_WithExistingId_UpdatesLog()
+    public async Task SaveExerciseLogAsync_WithExistingId_UpdatesLog()
     {
         // ── ARRANGE ──────────────────────────────────────────────────────────
         await using DatabaseContext context = await DatabaseContext.CreateForTestingAsync();
-        WorkoutLogRepository repository = new(context, NullLogger<WorkoutLogRepository>.Instance);
+        ExerciseLogRepository repository = new(context, NullLogger<ExerciseLogRepository>.Instance);
 
         // First insert a row so we have something to update.
-        // After SaveWorkoutLogAsync returns, newLog.Id will be set to the
+        // After SaveExerciseLogAsync returns, newLog.Id will be set to the
         // auto-generated primary key — we use that Id in the update below.
-        WorkoutLog existingLog = new()
+        ExerciseLog existingLog = new()
         {
             Id = 0,
             ExerciseName = "Bench Press",
@@ -103,30 +103,30 @@ public class WorkoutLogRepositoryTests
         };
         _ = await context.Connection.InsertAsync(existingLog);
 
-        // Modify the object. Because Id is now > 0, SaveWorkoutLogAsync will
+        // Modify the object. Because Id is now > 0, SaveExerciseLogAsync will
         // call UpdateAsync instead of InsertAsync.
         existingLog.Weight = 100;
 
         // ── ACT ───────────────────────────────────────────────────────────────
-        int rowsAffected = await repository.SaveWorkoutLogAsync(existingLog);
+        int rowsAffected = await repository.SaveExerciseLogAsync(existingLog);
 
         // ── ASSERT ────────────────────────────────────────────────────────────
         Assert.Equal(1, rowsAffected);
 
         // Fetch the record back and confirm the weight was updated, not duplicated.
-        List<WorkoutLog> allLogs = await repository.GetWorkoutLogsAsync();
-        WorkoutLog updatedLog = Assert.Single(allLogs); // fails if count != 1
+        List<ExerciseLog> allLogs = await repository.GetExerciseLogsAsync();
+        ExerciseLog updatedLog = Assert.Single(allLogs); // fails if count != 1
         Assert.Equal(100, updatedLog.Weight);
     }
 
     [Fact]
-    public async Task GetWorkoutLogForDateAsync_WithExistingWorkoutOnADate_ReturnsThatWorkoutLog()
+    public async Task GetExerciseLogForDateAsync_WithExistingWorkoutOnADate_ReturnsThatExerciseLog()
     {
         await using DatabaseContext context = await DatabaseContext.CreateForTestingAsync();
-        WorkoutLogRepository repository = new(context, NullLogger<WorkoutLogRepository>.Instance);
+        ExerciseLogRepository repository = new(context, NullLogger<ExerciseLogRepository>.Instance);
 
         DateTime dateNow = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
-        WorkoutLog existingLog = new()
+        ExerciseLog existingLog = new()
         {
             Id = 0,
             ExerciseName = "Bench Press",
@@ -134,9 +134,9 @@ public class WorkoutLogRepositoryTests
             Weight = 100,
         };
         _ = await context.Connection.InsertAsync(existingLog);
-        List<WorkoutLog> result = await repository.GetWorkoutLogForDateAsync(dateNow);
+        List<ExerciseLog> result = await repository.GetExerciseLogForDateAsync(dateNow);
 
-        WorkoutLog returnedLog = Assert.Single(result);
+        ExerciseLog returnedLog = Assert.Single(result);
         Assert.Equal(existingLog.Id, returnedLog.Id);
         Assert.Equal(existingLog.ExerciseName, returnedLog.ExerciseName);
         Assert.Equal(existingLog.Date, returnedLog.Date);
@@ -144,10 +144,10 @@ public class WorkoutLogRepositoryTests
     }
 
     [Fact]
-    public async Task GetLatestLogForExerciseAsync_WithExistingWorkoutOnADate_ReturnsTheMostRecentWorkoutLogBeforeDate()
+    public async Task GetLatestLogForExerciseAsync_WithExistingWorkoutOnADate_ReturnsTheMostRecentExerciseLogBeforeDate()
     {
         await using DatabaseContext context = await DatabaseContext.CreateForTestingAsync();
-        WorkoutLogRepository repository = new(context, NullLogger<WorkoutLogRepository>.Instance);
+        ExerciseLogRepository repository = new(context, NullLogger<ExerciseLogRepository>.Instance);
 
         string exerciseName = "Bench Press";
         DateTime dateDayBefore = DateTime.SpecifyKind(
@@ -155,7 +155,7 @@ public class WorkoutLogRepositoryTests
             DateTimeKind.Unspecified
         );
         DateTime dateNow = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
-        WorkoutLog existingLog = new()
+        ExerciseLog existingLog = new()
         {
             Id = 0,
             ExerciseName = exerciseName,
@@ -163,7 +163,7 @@ public class WorkoutLogRepositoryTests
             Weight = 100,
         };
         _ = await context.Connection.InsertAsync(existingLog);
-        WorkoutLog? result = await repository.GetLatestLogForExerciseAsync(
+        ExerciseLog? result = await repository.GetLatestLogForExerciseAsync(
             exerciseName,
             dateDayBefore
         );

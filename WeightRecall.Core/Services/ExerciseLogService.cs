@@ -5,83 +5,83 @@ using WeightRecall.Repository;
 namespace WeightRecall.Services;
 
 /// <summary>
-/// Service for managing workout logs and computing exercise progress.
+/// Service for managing exercise logs and computing exercise progress.
 /// </summary>
-/// <param name="repository">The workout log repository.</param>
+/// <param name="repository">The exercise log repository.</param>
 /// <param name="plannedExerciseRepository">The planned exercise repository to cross-reference exercises.</param>
 /// <param name="logger">The logger instance for diagnostics.</param>
-public class WorkoutLogService(
-    IWorkoutLogRepository repository,
+public class ExerciseLogService(
+    IExerciseLogRepository repository,
     IPlannedExerciseRepository plannedExerciseRepository,
-    ILogger<WorkoutLogService> logger
+    ILogger<ExerciseLogService> logger
 )
 {
-    private readonly IWorkoutLogRepository _repository = repository;
+    private readonly IExerciseLogRepository _repository = repository;
     private readonly IPlannedExerciseRepository _plannedExerciseRepository =
         plannedExerciseRepository;
-    private readonly ILogger<WorkoutLogService> _logger = logger;
+    private readonly ILogger<ExerciseLogService> _logger = logger;
 
     /// <summary>
-    /// Retrieves all workout logs for a given date.
+    /// Retrieves all exercise logs for a given date.
     /// </summary>
     /// <param name="date">Target date.</param>
-    /// <returns>A list of <see cref="WorkoutLog"/> entries.</returns>
-    public async Task<List<WorkoutLog>> GetWorkoutLogForExercise(DateTime date)
+    /// <returns>A list of <see cref="ExerciseLog"/> entries.</returns>
+    public async Task<List<ExerciseLog>> GetExerciseLogsForDate(DateTime date)
     {
-        _logger.LogDebug("Retrieving workout logs for {Date}", date);
-        return await _repository.GetWorkoutLogForDateAsync(date);
+        _logger.LogDebug("Retrieving exercise logs for {Date}", date);
+        return await _repository.GetExerciseLogForDateAsync(date);
     }
 
     /// <summary>
-    /// Saves a single workout log entry.
+    /// Saves a single exercise log entry.
     /// </summary>
-    /// <param name="workout">The workout log to save.</param>
+    /// <param name="log">The exercise log to save.</param>
     /// <returns>The number of rows affected.</returns>
-    public async Task<int> SaveWorkoutLog(WorkoutLog workout)
+    public async Task<int> SaveExerciseLog(ExerciseLog log)
     {
-        _logger.LogInformation("Saving workout log for {Exercise}", workout.ExerciseName);
-        return await _repository.SaveWorkoutLogAsync(workout);
+        _logger.LogInformation("Saving exercise log for {Exercise}", log.ExerciseName);
+        return await _repository.SaveExerciseLogAsync(log);
     }
 
     /// <summary>
-    /// Deletes a workout log entry.
+    /// Deletes an exercise log entry.
     /// </summary>
-    /// <param name="workout">The workout log to delete.</param>
+    /// <param name="log">The exercise log to delete.</param>
     /// <returns>The number of rows affected.</returns>
-    public async Task<int> DeleteWorkoutLog(WorkoutLog workout)
+    public async Task<int> DeleteExerciseLog(ExerciseLog log)
     {
-        _logger.LogInformation("Deleting workout log: {Id}", workout.Id);
-        return await _repository.DeleteWorkoutLogAsync(workout);
+        _logger.LogInformation("Deleting exercise log: {Id}", log.Id);
+        return await _repository.DeleteExerciseLogAsync(log);
     }
 
     /// <summary>
-    /// Gets the list of workout logs for a selected date, pre-populated with exercises from the routine for that day.
+    /// Gets the list of exercise logs for a selected date, pre-populated with exercises from the routine for that day.
     /// Also fetches historical data from the previous week to provide context.
     /// </summary>
     /// <param name="selectedDate">The date chosen by the user.</param>
-    /// <returns>A list of workout logs representing the daily plan and any existing data.</returns>
-    public async Task<List<WorkoutLog>> GetDailyWorkoutLogsAsync(DateTime selectedDate)
+    /// <returns>A list of exercise logs representing the daily plan and any existing data.</returns>
+    public async Task<List<ExerciseLog>> GetDailyExerciseLogsAsync(DateTime selectedDate)
     {
         // 1. Get the routine definition for this day of the week
         List<PlannedExercise> routine =
             await _plannedExerciseRepository.GetPlannedExercisesForDayAsync(selectedDate.DayOfWeek);
 
         // 2. Get any existing logs already saved for this specific date
-        List<WorkoutLog> existingLogsForDay = await _repository.GetWorkoutLogForDateAsync(
+        List<ExerciseLog> existingLogsForDay = await _repository.GetExerciseLogForDateAsync(
             selectedDate.Date
         );
 
-        List<WorkoutLog> result = [];
+        List<ExerciseLog> result = [];
 
         foreach (PlannedExercise planned in routine)
         {
             // Check if the user already started/saved this exercise today
-            WorkoutLog? existingLog = existingLogsForDay.FirstOrDefault(l =>
+            ExerciseLog? existingLog = existingLogsForDay.FirstOrDefault(l =>
                 l.ExerciseName.Equals(planned.ExerciseName, StringComparison.OrdinalIgnoreCase)
             );
 
             // 3. Get the MOST RECENT log before today (regardless of how many days ago)
-            WorkoutLog? prevLog = await _repository.GetLatestLogForExerciseAsync(
+            ExerciseLog? prevLog = await _repository.GetLatestLogForExerciseAsync(
                 planned.ExerciseName,
                 selectedDate.Date.AddDays(-1) // Ensures we don't pick up "today" as "previous"
             );
@@ -101,7 +101,7 @@ public class WorkoutLogService(
             {
                 // If it's a new entry for the day, create the placeholder
                 result.Add(
-                    new WorkoutLog
+                    new ExerciseLog
                     {
                         Date = selectedDate.Date,
                         ExerciseName = planned.ExerciseName,
@@ -118,27 +118,27 @@ public class WorkoutLogService(
     }
 
     /// <summary>
-    /// Saves multiple workout log entries, skipping those with no recorded activity.
+    /// Saves multiple exercise log entries, skipping those with no recorded activity.
     /// </summary>
-    /// <param name="logs">Collection of workout logs to save.</param>
+    /// <param name="logs">Collection of exercise logs to save.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task SaveWorkoutLogsAsync(IEnumerable<WorkoutLog> logs)
+    public async Task SaveExerciseLogsAsync(IEnumerable<ExerciseLog> logs)
     {
-        foreach (WorkoutLog exercise in logs)
+        foreach (ExerciseLog exercise in logs)
         {
             if (exercise.Weight > 0 || exercise.Sets > 0 || exercise.Reps > 0)
             {
-                _ = await _repository.SaveWorkoutLogAsync(exercise);
+                _ = await _repository.SaveExerciseLogAsync(exercise);
             }
         }
     }
 
     /// <summary>
-    /// Retrieves workout logs for a specific exercise over the last month.
+    /// Retrieves exercise logs for a specific exercise over the last month.
     /// </summary>
     /// <param name="exerciseName">The exercise to track.</param>
-    /// <returns>A list of <see cref="WorkoutLog"/> entries from the last 30 days.</returns>
-    public async Task<List<WorkoutLog>> GetExerciseProgressLastMonth(string exerciseName)
+    /// <returns>A list of <see cref="ExerciseLog"/> entries from the last 30 days.</returns>
+    public async Task<List<ExerciseLog>> GetExerciseProgressLastMonth(string exerciseName)
     {
         DateTime endDate = DateTime.Today;
         DateTime startDate = endDate.AddMonths(-1);
@@ -158,7 +158,7 @@ public class WorkoutLogService(
         string exerciseName
     )
     {
-        List<WorkoutLog> logs = await GetExerciseProgressLastMonth(exerciseName);
+        List<ExerciseLog> logs = await GetExerciseProgressLastMonth(exerciseName);
 
         return
         [
