@@ -87,7 +87,12 @@ public class NotificationService(
                             RepeatType = NotificationRepeat.TimeInterval,
                             NotifyRepeatInterval = TimeSpan.FromMinutes(5),
 #else
-                            NotifyTime = GetNextOccurrence(day, 10, 0),
+                            NotifyTime = WeeklyNotificationSchedule.GetNextOccurrence(
+                                day,
+                                10,
+                                0,
+                                DateTime.Now
+                            ),
                             RepeatType = NotificationRepeat.Weekly,
 #endif
                         },
@@ -152,27 +157,4 @@ public class NotificationService(
         }
         catch { }
     }
-
-    /// <summary>
-    /// Returns the next DateTime when the given day of week occurs at the specified time.
-    /// If that slot already passed this week, returns the occurrence next week.
-    /// </summary>
-    // Used in release builds via the #else branch of the #if DEBUG block above
-#pragma warning disable IDE0051
-    private static DateTime GetNextOccurrence(DayOfWeek day, int hour, int minute)
-    {
-        DateTime now = DateTime.Now;
-        DateTime next = new(now.Year, now.Month, now.Day, hour, minute, 0);
-
-        int daysUntil = ((int)day - (int)now.DayOfWeek + 7) % 7;
-
-        // If today is the target day but the time has already passed, push to next week
-        if (daysUntil == 0 && now.TimeOfDay >= new TimeSpan(hour, minute, 0))
-        {
-            daysUntil = 7;
-        }
-
-        return next.AddDays(daysUntil);
-    }
-#pragma warning restore IDE0051
 }
