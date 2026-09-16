@@ -36,12 +36,12 @@ public static class PlannedExerciseOrdering
     /// </remarks>
     /// <param name="exercises">The exercises belonging to a single day.</param>
     /// <param name="preferred">
-    /// The exercise whose <see cref="PlannedExercise.Order"/> should be honoured as a destination,
+    /// The exercise whose <see cref="PlannedExercise.Position"/> should be honoured as a destination,
     /// matched by <see cref="PlannedExercise.Id"/>. Out-of-range values are clamped to the ends of
     /// the list. Pass null when no exercise has been singled out.
     /// </param>
-    /// <returns>The exercises whose <see cref="PlannedExercise.Order"/> was changed.</returns>
-    public static List<PlannedExercise> AssignSequentialOrder(
+    /// <returns>The exercises whose <see cref="PlannedExercise.Position"/> was changed.</returns>
+    public static List<PlannedExercise> AssignSequentialPositions(
         IEnumerable<PlannedExercise> exercises,
         PlannedExercise? preferred = null
     )
@@ -54,13 +54,13 @@ public static class PlannedExerciseOrdering
         List<PlannedExercise> ranked =
         [
             .. all.Where(e => !ReferenceEquals(e, target))
-                .OrderBy(e => e.Order)
+                .OrderBy(e => e.Position)
                 .ThenBy(e => e.ExerciseName),
         ];
 
         if (target is not null)
         {
-            ranked.Insert(Math.Clamp(target.Order - 1, 0, ranked.Count), target);
+            ranked.Insert(Math.Clamp(target.Position - 1, 0, ranked.Count), target);
         }
 
         List<PlannedExercise> changed = [];
@@ -68,9 +68,9 @@ public static class PlannedExerciseOrdering
         for (int i = 0; i < ranked.Count; i++)
         {
             int position = i + 1;
-            if (ranked[i].Order != position)
+            if (ranked[i].Position != position)
             {
-                ranked[i].Order = position;
+                ranked[i].Position = position;
                 changed.Add(ranked[i]);
             }
         }

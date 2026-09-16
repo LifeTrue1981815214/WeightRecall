@@ -44,7 +44,7 @@ public class PlannedExerciseRepository(
                 connection
                     .Table<PlannedExercise>()
                     .Where(e => e.DayOfWeek == day)
-                    .OrderBy(e => e.Order)
+                    .OrderBy(e => e.Position)
                     .ToListAsync(),
             ex => _logger.LogError(ex, "Failed to get planned exercises for {Day}", day)
         );

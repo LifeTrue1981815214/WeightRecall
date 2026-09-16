@@ -95,7 +95,7 @@ public partial class ExercisesViewModel : ObservableObject
     {
         _editingExercise = exercise;
         NewExerciseName = exercise.ExerciseName;
-        NewOrder = exercise.Order.ToString();
+        NewPosition = exercise.Position.ToString();
         SelectedDay = exercise.DayOfWeek;
         IsEditing = true;
         IsAddingPlannedExercise = true;
@@ -113,7 +113,7 @@ public partial class ExercisesViewModel : ObservableObject
         IsEditing = false;
         _editingExercise = null;
         NewExerciseName = string.Empty;
-        NewOrder = string.Empty;
+        NewPosition = string.Empty;
     }
 
     /// <summary>
@@ -217,12 +217,12 @@ public partial class ExercisesViewModel : ObservableObject
     private string _newExerciseName = string.Empty;
 
     [ObservableProperty]
-    private string _newOrder = string.Empty;
+    private string _newPosition = string.Empty;
 
     [RelayCommand]
     private async Task SavePlannedExerciseAsync()
     {
-        if (IsBusy || !int.TryParse(NewOrder, out int order))
+        if (IsBusy || !int.TryParse(NewPosition, out int position))
         {
             return;
         }
@@ -238,7 +238,7 @@ public partial class ExercisesViewModel : ObservableObject
                 _logger.LogInformation("Updating planned exercise {Id}", _editingExercise.Id);
                 oldDay = _editingExercise.DayOfWeek;
                 _editingExercise.ExerciseName = NewExerciseName;
-                _editingExercise.Order = order;
+                _editingExercise.Position = position;
                 _editingExercise.DayOfWeek = targetDay;
                 await _plannedExerciseService.SavePlannedExerciseAsync(_editingExercise, oldDay);
             }
@@ -248,7 +248,7 @@ public partial class ExercisesViewModel : ObservableObject
                 PlannedExercise exercise = new()
                 {
                     ExerciseName = NewExerciseName,
-                    Order = order,
+                    Position = position,
                     DayOfWeek = targetDay,
                 };
                 await _plannedExerciseService.SavePlannedExerciseAsync(exercise);

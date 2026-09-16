@@ -101,9 +101,9 @@ public class PlannedExerciseService(
     /// every day it affects and updates notifications.
     /// </summary>
     /// <remarks>
-    /// The saved exercise is given priority while its day is renumbered, so the position the
-    /// user typed is the position it ends up in, and any exercise already sitting there is
-    /// pushed down rather than keeping the spot.
+    /// The saved exercise is passed through as the preferred one while its day is renumbered, so
+    /// the position the user typed is the position it ends up in, and whatever was sitting there
+    /// is pushed out of the way.
     /// </remarks>
     /// <param name="exercise">The planned exercise to save.</param>
     /// <param name="oldDay">Optional previous day if the exercise was moved between days.</param>
@@ -211,7 +211,7 @@ public class PlannedExerciseService(
     private async Task ResequenceAsync(DayOfWeek day, PlannedExercise? preferred = null)
     {
         List<PlannedExercise> exercises = await _repository.GetPlannedExercisesForDayAsync(day);
-        List<PlannedExercise> moved = PlannedExerciseOrdering.AssignSequentialOrder(
+        List<PlannedExercise> moved = PlannedExerciseOrdering.AssignSequentialPositions(
             exercises,
             preferred
         );

@@ -84,7 +84,7 @@
                                     />
                                     <Label
                                         FontSize="14"
-                                        Text="{Binding Order, StringFormat='Sequence Order: {0}'}"
+                                        Text="{Binding Position, StringFormat='Sequence Order: {0}'}"
                                         TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
                                     />
                                 </VerticalStackLayout>
@@ -189,7 +189,7 @@
                         <Entry
                             Keyboard="Numeric"
                             Placeholder="Order"
-                            Text="{Binding NewOrder}"
+                            Text="{Binding NewPosition}"
                             TextColor="{AppThemeBinding Light=Black, Dark=White}"
                             BackgroundColor="Transparent"
                             HeightRequest="44"

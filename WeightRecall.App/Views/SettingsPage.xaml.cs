@@ -27,7 +27,12 @@ internal sealed class PlannedExerciseExport
 {
     public string ExerciseName { get; set; } = string.Empty;
     public DayOfWeek DayOfWeek { get; set; }
-    public int Order { get; set; }
+
+    // Pinned for the same reason as ExportData.PlannedExercises: "Order" is the name in every
+    // backup users have already exported, and the TXT column header below matches it.
+    // TODO: unpin when the backup format gets a version bump that can migrate old files.
+    [JsonPropertyName("Order")]
+    public int Position { get; set; }
 }
 
 internal sealed class WorkoutLogExport
@@ -200,7 +205,7 @@ public partial class SettingsPage : ContentPage
         sb.AppendLine("ExerciseName,DayOfWeek,Order");
         foreach (PlannedExerciseExport e in data.PlannedExercises)
         {
-            sb.AppendLine($"{CsvEscape(e.ExerciseName)},{e.DayOfWeek},{e.Order}");
+            sb.AppendLine($"{CsvEscape(e.ExerciseName)},{e.DayOfWeek},{e.Position}");
         }
 
         sb.AppendLine();
@@ -238,7 +243,7 @@ public partial class SettingsPage : ContentPage
                 {
                     ExerciseName = e.ExerciseName,
                     DayOfWeek = e.DayOfWeek,
-                    Order = e.Order,
+                    Position = e.Position,
                 })
                 .ToList(),
             WorkoutLogs = workoutLogs
@@ -372,7 +377,7 @@ public partial class SettingsPage : ContentPage
             {
                 ExerciseName = e.ExerciseName,
                 DayOfWeek = e.DayOfWeek,
-                Order = e.Order,
+                Position = e.Position,
             })
         );
 
@@ -433,7 +438,7 @@ public partial class SettingsPage : ContentPage
                     {
                         ExerciseName = parts[0],
                         DayOfWeek = Enum.Parse<DayOfWeek>(parts[1]),
-                        Order = int.Parse(parts[2], CultureInfo.InvariantCulture),
+                        Position = int.Parse(parts[2], CultureInfo.InvariantCulture),
                     }
                 );
             }

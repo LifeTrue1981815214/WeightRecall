@@ -16,7 +16,7 @@ GetLogsForExerciseInDateRangeAsync returns only logs within the bounds (inclusiv
 Deleting a log removes it from subsequent queries
 PlannedExerciseRepository
 
-GetPlannedExercisesForDayAsync returns only exercises for the requested day, sorted by Order
+GetPlannedExercisesForDayAsync returns only exercises for the requested day, sorted by Position
 Adding two exercises for the same day and different days → each day query returns correct subset
 Delete removes only the target exercise
 Service Layer (repositories wired to a real temp DB)
@@ -33,24 +33,24 @@ Renaming an exercise carries its logged history with it (logs are keyed by name,
   this the history is stranded and the exercise appears to start from zero):
   - rename via UpdatePlannedExerciseAsync moves every matching WorkoutLog to the new name
   - rename via SavePlannedExerciseAsync (the path the UI actually uses) does the same
-  - editing only Order or DayOfWeek leaves the logs completely untouched
+  - editing only Position or DayOfWeek leaves the logs completely untouched
   - history is NOT moved when another planned exercise still uses the old name -- e.g. the same
     movement planned on Monday and Thursday shares one history, and renaming the Monday entry
     must not take the logs away from the Thursday one
   - a case-only rename ("dips" -> "Dips") still moves the logs, since the log lookup compares
     names with SQL `=`, which is case-sensitive
-PlannedExerciseOrdering.AssignSequentialOrder (pure, no DB needed)
+PlannedExerciseOrdering.AssignSequentialPositions (pure, no DB needed)
 
-Gaps are closed: orders 1,5,9 become 1,2,3
-Ties on Order are broken alphabetically by exercise name when `preferred` is null
-`preferred`'s Order is a DESTINATION INDEX, not a tie-break. Both directions must be covered:
+Gaps are closed: positions 1,5,9 become 1,2,3
+Ties on Position are broken alphabetically by exercise name when `preferred` is null
+`preferred`'s Position is a DESTINATION INDEX, not a tie-break. Both directions must be covered:
   - moving UP   (2 -> 1) puts it first and pushes the old occupant down
   - moving DOWN (2 -> 3) puts it third -- REGRESSION GUARD: a tie-break implementation
     silently leaves it at 2, which is the bug this replaced
 Out-of-range typed positions clamp: 99 lands last, 0 or negative lands first
 `preferred` is matched by Id, not reference (callers pass DB-loaded instances)
 An unsaved `preferred` (Id = 0) is still matched, by reference
-Only the exercises whose Order actually changed are returned
+Only the exercises whose Position actually changed are returned
 An already-sequential list returns no changes (so no redundant DB writes)
 An empty list returns no changes
 WorkoutLogService

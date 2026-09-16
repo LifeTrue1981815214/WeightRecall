@@ -6,8 +6,11 @@ namespace WeightRecall.Models;
 /// Represents an exercise planned for a given day within the weekly workout routine.
 /// </summary>
 /// <remarks>
-/// The table name predates the rename from "RoutineItem" and is pinned deliberately:
-/// changing it would orphan the rows in every already-installed copy of the app.
+/// The table and column names below predate the renames to PlannedExercise and Position, and
+/// are pinned deliberately: sqlite-net derives them from the C# names, so changing them would
+/// orphan the rows in every already-installed copy of the app.
+/// TODO: unpin these as part of a schema migration, so the stored names match the C# ones.
+/// Until that migration exists, leave the attributes alone.
 /// </remarks>
 [Table("RoutineItems")]
 public class PlannedExercise
@@ -31,5 +34,6 @@ public class PlannedExercise
     /// <summary>
     /// Gets or sets the position of the exercise within that day, starting at 1.
     /// </summary>
-    public int Order { get; set; }
+    [Column("Order")]
+    public int Position { get; set; }
 }
