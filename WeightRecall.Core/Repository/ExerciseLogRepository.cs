@@ -1,11 +1,12 @@
 using Microsoft.Extensions.Logging;
+using SQLite;
 using WeightRecall.Data;
 using WeightRecall.Models;
 
 namespace WeightRecall.Repository;
 
 /// <summary>
-/// Repository for managing exercise logs in the database.
+/// SQLite-backed implementation of <see cref="IExerciseLogRepository"/>.
 /// </summary>
 /// <param name="context">The database context for data access.</param>
 /// <param name="logger">The logger instance for diagnostics.</param>
@@ -15,203 +16,171 @@ public class ExerciseLogRepository(DatabaseContext context, ILogger<ExerciseLogR
     private readonly DatabaseContext _context = context;
     private readonly ILogger<ExerciseLogRepository> _logger = logger;
 
-    private async Task<SQLite.SQLiteAsyncConnection> GetConnectionAsync()
+    /// <inheritdoc />
+    public Task<List<ExerciseLog>> GetExerciseLogsAsync()
     {
-        await _context.InitializeAsync();
-        return _context.Connection;
+        return ExecuteAsync(
+            connection => connection.Table<ExerciseLog>().ToListAsync(),
+            ex => _logger.LogError(ex, "Failed to get exercise logs")
+        );
     }
 
-    /// <summary>
-    /// Retrieves all exercise logs from the database.
-    /// </summary>
-    /// <returns>A list of all <see cref="ExerciseLog"/> entries.</returns>
-    public async Task<List<ExerciseLog>> GetExerciseLogsAsync()
+    /// <inheritdoc />
+    public Task<List<ExerciseLog>> GetExerciseLogForDateAsync(DateTime date)
     {
-        try
-        {
-            return await (await GetConnectionAsync()).Table<ExerciseLog>().ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get exercise logs");
-            throw;
-        }
+        return ExecuteAsync(
+            connection => connection.Table<ExerciseLog>().Where(r => r.Date == date).ToListAsync(),
+            ex => _logger.LogError(ex, "Failed to get exercise logs for {Date}", date)
+        );
     }
 
-    /// <summary>
-    /// Retrieves exercise logs for a specific date.
-    /// </summary>
-    /// <param name="date">The date to retrieve logs for.</param>
-    /// <returns>A list of <see cref="ExerciseLog"/> entries for the specified date.</returns>
-    public async Task<List<ExerciseLog>> GetExerciseLogForDateAsync(DateTime date)
+    /// <inheritdoc />
+    public Task<ExerciseLog?> GetLatestLogForExerciseAsync(string exerciseName, DateTime beforeDate)
     {
-        try
-        {
-            return await (await GetConnectionAsync())
-                .Table<ExerciseLog>()
-                .Where(r => r.Date == date)
-                .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get exercise logs for {Date}", date);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Retrieves the most recent exercise log for an exercise on or before the specified date.
-    /// </summary>
-    /// <param name="exerciseName">The exercise name.</param>
-    /// <param name="beforeDate">The latest date to consider (inclusive).</param>
-    /// <returns>The latest <see cref="ExerciseLog"/> or null if none found.</returns>
-    public async Task<ExerciseLog?> GetLatestLogForExerciseAsync(
-        string exerciseName,
-        DateTime beforeDate
-    )
-    {
-        try
-        {
-            List<ExerciseLog> list = await (await GetConnectionAsync())
-                .Table<ExerciseLog>()
-                .Where(w => w.ExerciseName == exerciseName && w.Date <= beforeDate)
-                .OrderByDescending(w => w.Date)
-                .Take(1)
-                .ToListAsync();
-
-            return list.FirstOrDefault();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Failed to get latest exercise log for {Exercise} before {Date}",
-                exerciseName,
-                beforeDate
-            );
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Saves an exercise log entry to the database (inserts if new, updates if existing).
-    /// </summary>
-    /// <param name="item">The exercise log entry to save.</param>
-    /// <returns>The number of rows affected.</returns>
-    public async Task<int> SaveExerciseLogAsync(ExerciseLog item)
-    {
-        try
-        {
-            SQLite.SQLiteAsyncConnection connection = await GetConnectionAsync();
-            if (item.Id == 0)
+        return ExecuteAsync<ExerciseLog?>(
+            async connection =>
             {
-                _logger.LogInformation(
-                    "Inserting new exercise log for {Exercise}",
-                    item.ExerciseName
-                );
-                return await connection.InsertAsync(item);
-            }
-            else
+                List<ExerciseLog> list = await connection
+                    .Table<ExerciseLog>()
+                    .Where(w => w.ExerciseName == exerciseName && w.Date <= beforeDate)
+                    .OrderByDescending(w => w.Date)
+                    .Take(1)
+                    .ToListAsync();
+
+                return list.FirstOrDefault();
+            },
+            ex =>
+                _logger.LogError(
+                    ex,
+                    "Failed to get latest exercise log for {Exercise} before {Date}",
+                    exerciseName,
+                    beforeDate
+                )
+        );
+    }
+
+    /// <inheritdoc />
+    public Task<int> SaveExerciseLogAsync(ExerciseLog item)
+    {
+        return ExecuteAsync(
+            connection =>
             {
+                if (item.Id == 0)
+                {
+                    _logger.LogInformation(
+                        "Inserting new exercise log for {Exercise}",
+                        item.ExerciseName
+                    );
+                    return connection.InsertAsync(item);
+                }
+
                 _logger.LogInformation(
                     "Updating exercise log {Id} for {Exercise}",
                     item.Id,
                     item.ExerciseName
                 );
-                return await connection.UpdateAsync(item);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to save exercise log for {Exercise}", item.ExerciseName);
-            throw;
-        }
+                return connection.UpdateAsync(item);
+            },
+            ex =>
+                _logger.LogError(
+                    ex,
+                    "Failed to save exercise log for {Exercise}",
+                    item.ExerciseName
+                )
+        );
     }
 
-    /// <summary>
-    /// Deletes an exercise log entry from the database.
-    /// </summary>
-    /// <param name="item">The exercise log entry to delete.</param>
-    /// <returns>The number of rows affected.</returns>
-    public async Task<int> DeleteExerciseLogAsync(ExerciseLog item)
+    /// <inheritdoc />
+    public Task<int> DeleteExerciseLogAsync(ExerciseLog item)
     {
-        try
-        {
-            _logger.LogInformation("Deleting exercise log {Id}", item.Id);
-            return await (await GetConnectionAsync()).DeleteAsync(item);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete exercise log {Id}", item.Id);
-            throw;
-        }
+        _logger.LogInformation("Deleting exercise log {Id}", item.Id);
+        return ExecuteAsync(
+            connection => connection.DeleteAsync(item),
+            ex => _logger.LogError(ex, "Failed to delete exercise log {Id}", item.Id)
+        );
     }
 
-    /// <summary>
-    /// Retrieves logs for a specific exercise within a given date range.
-    /// </summary>
-    /// <param name="exerciseName">The name of the exercise.</param>
-    /// <param name="startDate">The start of the date range.</param>
-    /// <param name="endDate">The end of the date range.</param>
-    /// <returns>A list of matching <see cref="ExerciseLog"/> entries.</returns>
-    public async Task<List<ExerciseLog>> GetLogsForExerciseInDateRangeAsync(
+    /// <inheritdoc />
+    public Task<List<ExerciseLog>> GetLogsForExerciseInDateRangeAsync(
         string exerciseName,
         DateTime startDate,
         DateTime endDate
     )
     {
-        try
-        {
-            return await (await GetConnectionAsync())
-                .Table<ExerciseLog>()
-                .Where(w =>
-                    w.ExerciseName == exerciseName && w.Date >= startDate && w.Date <= endDate
+        return ExecuteAsync(
+            connection =>
+                connection
+                    .Table<ExerciseLog>()
+                    .Where(w =>
+                        w.ExerciseName == exerciseName && w.Date >= startDate && w.Date <= endDate
+                    )
+                    .OrderBy(w => w.Date)
+                    .ToListAsync(),
+            ex =>
+                _logger.LogError(
+                    ex,
+                    "Failed to get logs for {Exercise} between {Start} and {End}",
+                    exerciseName,
+                    startDate,
+                    endDate
                 )
-                .OrderBy(w => w.Date)
-                .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Failed to get logs for {Exercise} between {Start} and {End}",
-                exerciseName,
-                startDate,
-                endDate
-            );
-            throw;
-        }
+        );
     }
 
     /// <inheritdoc />
-    public async Task<int> RenameExerciseAsync(string previousName, string newName)
+    public Task<int> RenameExerciseAsync(string previousName, string newName)
+    {
+        return ExecuteAsync(
+            async connection =>
+            {
+                int moved = await connection.ExecuteAsync(
+                    "UPDATE "
+                        + ExerciseLog.TableName
+                        + " SET ExerciseName = ? WHERE ExerciseName = ?",
+                    newName,
+                    previousName
+                );
+
+                _logger.LogInformation(
+                    "Moved {Count} exercise log(s) from {Previous} to {New}",
+                    moved,
+                    previousName,
+                    newName
+                );
+
+                return moved;
+            },
+            ex =>
+                _logger.LogError(
+                    ex,
+                    "Failed to move exercise logs from {Previous} to {New}",
+                    previousName,
+                    newName
+                )
+        );
+    }
+
+    /// <summary>
+    /// Runs a database operation against an initialized connection. Any failure is
+    /// reported through <paramref name="logFailure"/> and then rethrown unchanged.
+    /// </summary>
+    /// <typeparam name="T">The result type of the operation.</typeparam>
+    /// <param name="operation">The operation to run against the connection.</param>
+    /// <param name="logFailure">Callback that logs the failure before it is rethrown.</param>
+    /// <returns>The result of the operation.</returns>
+    private async Task<T> ExecuteAsync<T>(
+        Func<SQLiteAsyncConnection, Task<T>> operation,
+        Action<Exception> logFailure
+    )
     {
         try
         {
-            SQLite.SQLiteAsyncConnection connection = await GetConnectionAsync();
-            int moved = await connection.ExecuteAsync(
-                "UPDATE " + ExerciseLog.TableName + " SET ExerciseName = ? WHERE ExerciseName = ?",
-                newName,
-                previousName
-            );
-
-            _logger.LogInformation(
-                "Moved {Count} exercise log(s) from {Previous} to {New}",
-                moved,
-                previousName,
-                newName
-            );
-
-            return moved;
+            await _context.InitializeAsync();
+            return await operation(_context.Connection);
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to move exercise logs from {Previous} to {New}",
-                previousName,
-                newName
-            );
+            logFailure(ex);
             throw;
         }
     }
