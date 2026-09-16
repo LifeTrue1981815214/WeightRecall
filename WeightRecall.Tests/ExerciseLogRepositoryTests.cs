@@ -173,4 +173,46 @@ public class ExerciseLogRepositoryTests
         Assert.Equal(existingLog.Date, result.Date);
         Assert.Equal(existingLog.Weight, result.Weight);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // REGRESSION GUARD.
+    // RenameExerciseAsync is the only method that names the table in raw SQL, so
+    // it is the only one the compiler cannot check. A rename of the C# type once
+    // rewrote that string while the [Table] attribute stayed pinned, and every
+    // rename threw "no such table" until this was caught. The table name now
+    // comes from ExerciseLog.TableName; this test proves the query still runs.
+    // ─────────────────────────────────────────────────────────────────────────
+    [Fact]
+    public async Task RenameExerciseAsync_MovesLogsToTheNewName()
+    {
+        await using DatabaseContext context = await DatabaseContext.CreateForTestingAsync();
+        ExerciseLogRepository repository = new(context, NullLogger<ExerciseLogRepository>.Instance);
+
+        DateTime date = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Unspecified);
+        _ = await repository.SaveExerciseLogAsync(
+            new ExerciseLog
+            {
+                ExerciseName = "Pull ups",
+                Date = date,
+                Weight = 10,
+            }
+        );
+        _ = await repository.SaveExerciseLogAsync(
+            new ExerciseLog
+            {
+                ExerciseName = "Dips",
+                Date = date,
+                Weight = 12.5,
+            }
+        );
+
+        int moved = await repository.RenameExerciseAsync("Pull ups", "Chin ups");
+
+        // Only the matching logs move, and they are reachable under the new name.
+        Assert.Equal(1, moved);
+        List<ExerciseLog> all = await repository.GetExerciseLogsAsync();
+        Assert.Contains(all, l => l.ExerciseName == "Chin ups");
+        Assert.Contains(all, l => l.ExerciseName == "Dips");
+        Assert.DoesNotContain(all, l => l.ExerciseName == "Pull ups");
+    }
 }

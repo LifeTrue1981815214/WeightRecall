@@ -11,11 +11,21 @@ namespace WeightRecall.Models;
 /// derives it from the C# name, so changing it would orphan the rows in every already-installed
 /// copy of the app.
 /// TODO: unpin this as part of a schema migration, so the stored name matches the C# one.
-/// Until that migration exists, leave the attribute alone.
+/// Until that migration exists, leave <see cref="TableName"/> alone.
 /// </remarks>
-[Table("WorkoutLogs")]
+[Table(TableName)]
 public partial class ExerciseLog : ObservableObject
 {
+    /// <summary>
+    /// The name this entity is stored under.
+    /// </summary>
+    /// <remarks>
+    /// Shared by the mapping attribute and by raw SQL that names the table, so the two cannot
+    /// drift apart. They did once: a rename rewrote the table name inside a SQL string while the
+    /// attribute stayed pinned, and every rename threw "no such table" until it was found.
+    /// </remarks>
+    public const string TableName = "WorkoutLogs";
+
     /// <summary>
     /// Gets or sets the unique identifier for the exercise log entry.
     /// </summary>

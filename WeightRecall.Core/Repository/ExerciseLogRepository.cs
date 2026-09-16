@@ -190,7 +190,7 @@ public class ExerciseLogRepository(DatabaseContext context, ILogger<ExerciseLogR
         {
             SQLite.SQLiteAsyncConnection connection = await GetConnectionAsync();
             int moved = await connection.ExecuteAsync(
-                "UPDATE ExerciseLogs SET ExerciseName = ? WHERE ExerciseName = ?",
+                "UPDATE " + ExerciseLog.TableName + " SET ExerciseName = ? WHERE ExerciseName = ?",
                 newName,
                 previousName
             );
