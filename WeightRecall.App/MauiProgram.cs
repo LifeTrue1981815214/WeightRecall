@@ -77,6 +77,9 @@ public static class MauiProgram
             sp.GetRequiredService<ExerciseLogRepository>()
         );
         builder.Services.AddSingleton<ExerciseLogService>();
+        builder.Services.AddSingleton<ExerciseProgressService>();
+        // Real clock in the app; tests substitute their own so "today" is pinnable.
+        builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<NotificationService>();
         builder.Services.AddSingleton<IWorkoutNotificationService>(sp =>
             sp.GetRequiredService<NotificationService>()

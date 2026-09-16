@@ -53,14 +53,39 @@ An unsaved `preferred` (Id = 0) is still matched, by reference
 Only the exercises whose Position actually changed are returned
 An already-sequential list returns no changes (so no redundant DB writes)
 An empty list returns no changes
-ExerciseLogService
+DailyExerciseLogBuilder (pure, no DB needed)
 
-GetDailyExerciseLogsAsync merges routine exercises with existing logs for that date
-GetDailyExerciseLogsAsync populates PreviousDescription from the same exercise logged the previous week
-GetDailyExerciseLogsAsync includes routine exercises that have no existing logs (weight/sets/reps = 0)
-SaveExerciseLogsAsync skips entries where weight, sets, and reps are all 0
-GetExerciseProgressHistoryAsync groups multiple logs on the same day by max weight only
-GetExerciseProgressLastMonth returns nothing older than 30 days
+Build returns the EXISTING log instance when one is already saved for that date, with only its
+  PreviousDescription updated -- it must not be replaced, or the user's typed values are lost
+Build returns an all-zero placeholder carrying the planned exercise's name when nothing is logged
+FindExistingLog matches on name case-insensitively ("bench press" finds "Bench Press")
+DescribePrevious formats as "Prev: {weight}kg | {sets} sets | {reps} reps"
+DescribePrevious returns NoPreviousData for a null previous log
+
+ExerciseProgressHistory.Summarize (pure, no DB needed)
+
+Several logs on one date collapse to ONE point carrying that date's max weight
+Points come back oldest first
+An empty input returns no points
+
+ExerciseLog
+
+HasRecordedActivity is false only when weight, sets and reps are ALL zero -- this is what stops
+  untouched placeholder rows being written on every save
+
+ExerciseLogService (repository wired to a real temp DB)
+
+GetDailyExerciseLogsAsync returns one row per planned exercise for that day, in routine order
+GetDailyExerciseLogsAsync looks up "previous" strictly BEFORE the selected date, never the day itself
+SaveExerciseLogsAsync writes only the rows where HasRecordedActivity is true
+
+ExerciseProgressService (inject a TimeProvider so "today" is fixed)
+
+The query window runs from one CALENDAR MONTH back to the injected today -- so its length varies:
+  2026-09-15 -> 2026-08-15, 2026-03-31 -> 2026-02-28, 2026-01-31 -> 2025-12-31
+NOTE: the Progress page labels this "Last 30 Days", which does not match a calendar month.
+  Decide which is right -- change the label, or switch to AddDays(-30) -- before pinning a test.
+Logs outside the window are excluded
 DateService
 
 GetMonday returns Monday for mid-week, Monday itself, and Sunday edge cases

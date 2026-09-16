@@ -57,4 +57,16 @@ public partial class ExerciseLog : ObservableObject
     [ObservableProperty]
     [property: Ignore]
     private string _previousDescription = string.Empty;
+
+    /// <summary>
+    /// Gets a value indicating whether anything was actually recorded against this exercise.
+    /// </summary>
+    /// <remarks>
+    /// The day's sheet hands back a row for every planned exercise, including ones the user never
+    /// filled in. Those are all-zero and must not be written to the database, or every exercise
+    /// would gain an empty entry on every day it appears in the routine.
+    /// Not stored; derived from the other columns.
+    /// </remarks>
+    [Ignore]
+    public bool HasRecordedActivity => Weight > 0 || Sets > 0 || Reps > 0;
 }

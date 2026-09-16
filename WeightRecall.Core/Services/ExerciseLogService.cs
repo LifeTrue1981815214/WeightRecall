@@ -75,43 +75,20 @@ public class ExerciseLogService(
 
         foreach (PlannedExercise planned in routine)
         {
-            // Check if the user already started/saved this exercise today
-            ExerciseLog? existingLog = existingLogsForDay.FirstOrDefault(l =>
-                l.ExerciseName.Equals(planned.ExerciseName, StringComparison.OrdinalIgnoreCase)
-            );
-
             // 3. Get the MOST RECENT log before today (regardless of how many days ago)
-            ExerciseLog? prevLog = await _repository.GetLatestLogForExerciseAsync(
+            ExerciseLog? previousLog = await _repository.GetLatestLogForExerciseAsync(
                 planned.ExerciseName,
                 selectedDate.Date.AddDays(-1) // Ensures we don't pick up "today" as "previous"
             );
 
-            string prevDesc =
-                prevLog != null
-                    ? $"Prev: {prevLog.Weight}kg | {prevLog.Sets} sets | {prevLog.Reps} reps"
-                    : "No data from last week";
-
-            if (existingLog != null)
-            {
-                // If it exists, just update the description for the UI
-                existingLog.PreviousDescription = prevDesc;
-                result.Add(existingLog);
-            }
-            else
-            {
-                // If it's a new entry for the day, create the placeholder
-                result.Add(
-                    new ExerciseLog
-                    {
-                        Date = selectedDate.Date,
-                        ExerciseName = planned.ExerciseName,
-                        Weight = 0,
-                        Sets = 0,
-                        Reps = 0,
-                        PreviousDescription = prevDesc,
-                    }
-                );
-            }
+            result.Add(
+                DailyExerciseLogBuilder.Build(
+                    planned,
+                    DailyExerciseLogBuilder.FindExistingLog(existingLogsForDay, planned),
+                    previousLog,
+                    selectedDate
+                )
+            );
         }
 
         return result;
@@ -124,47 +101,9 @@ public class ExerciseLogService(
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task SaveExerciseLogsAsync(IEnumerable<ExerciseLog> logs)
     {
-        foreach (ExerciseLog exercise in logs)
+        foreach (ExerciseLog log in logs.Where(l => l.HasRecordedActivity))
         {
-            if (exercise.Weight > 0 || exercise.Sets > 0 || exercise.Reps > 0)
-            {
-                _ = await _repository.SaveExerciseLogAsync(exercise);
-            }
+            _ = await _repository.SaveExerciseLogAsync(log);
         }
-    }
-
-    /// <summary>
-    /// Retrieves exercise logs for a specific exercise over the last month.
-    /// </summary>
-    /// <param name="exerciseName">The exercise to track.</param>
-    /// <returns>A list of <see cref="ExerciseLog"/> entries from the last 30 days.</returns>
-    public async Task<List<ExerciseLog>> GetExerciseProgressLastMonth(string exerciseName)
-    {
-        DateTime endDate = DateTime.Today;
-        DateTime startDate = endDate.AddMonths(-1);
-        return await _repository.GetLogsForExerciseInDateRangeAsync(
-            exerciseName,
-            startDate,
-            endDate
-        );
-    }
-
-    /// <summary>
-    /// Aggregates workout history for an exercise into a simplified progress history.
-    /// </summary>
-    /// <param name="exerciseName">The name of the exercise.</param>
-    /// <returns>A list of <see cref="ExerciseProgressPoint"/> data points.</returns>
-    public async Task<List<ExerciseProgressPoint>> GetExerciseProgressHistoryAsync(
-        string exerciseName
-    )
-    {
-        List<ExerciseLog> logs = await GetExerciseProgressLastMonth(exerciseName);
-
-        return
-        [
-            .. logs.GroupBy(l => l.Date.Date)
-                .Select(g => new ExerciseProgressPoint(g.Key, g.Max(l => l.Weight)))
-                .OrderBy(p => p.Date),
-        ];
     }
 }

@@ -9,12 +9,12 @@ namespace WeightRecall.ViewModels;
 
 [QueryProperty(nameof(ExerciseName), "ExerciseName")]
 public partial class ProgressViewModel(
-    ExerciseLogService exerciseLogService,
+    ExerciseProgressService exerciseProgressService,
     IChartService chartService,
     ILogger<ProgressViewModel> logger
 ) : ObservableObject
 {
-    private readonly ExerciseLogService _exerciseLogService = exerciseLogService;
+    private readonly ExerciseProgressService _exerciseProgressService = exerciseProgressService;
     private readonly IChartService _chartService = chartService; // New Service
     private readonly ILogger<ProgressViewModel> _logger = logger;
 
@@ -51,7 +51,7 @@ public partial class ProgressViewModel(
             IsBusy = true;
 
             List<ExerciseProgressPoint> history =
-                await _exerciseLogService.GetExerciseProgressHistoryAsync(ExerciseName);
+                await _exerciseProgressService.GetExerciseProgressHistoryAsync(ExerciseName);
 
             if (history == null || history.Count == 0)
             {
