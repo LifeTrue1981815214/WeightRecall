@@ -20,6 +20,10 @@ public partial class ExercisesPage : ContentPage
     /// <summary>
     /// Triggered when the page appears on screen. Refresh the routine list.
     /// </summary>
+    /// <remarks>
+    /// This is the only place the first load is started from. The view model used to kick one
+    /// off in its constructor as well, and the two raced.
+    /// </remarks>
     protected override void OnAppearing()
     {
         base.OnAppearing();

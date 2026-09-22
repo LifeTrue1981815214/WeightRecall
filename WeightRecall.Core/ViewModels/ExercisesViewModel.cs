@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using WeightRecall.Models;
 using WeightRecall.Services;
-using WeightRecall.Views;
 
 namespace WeightRecall.ViewModels;
 
@@ -12,25 +11,49 @@ namespace WeightRecall.ViewModels;
 /// ViewModel for managing the workout routine exercises.
 /// Allows adding, editing, and deleting planned exercises for different days of the week.
 /// </summary>
+/// <remarks>
+/// Prompting, navigating, marshalling to the UI thread and reading the current day all arrive
+/// through injected services rather than being reached for directly, so the rules here -- add
+/// versus edit, what a cancelled deletion leaves behind, when a command may run -- can be
+/// exercised without a running app.
+/// </remarks>
 public partial class ExercisesViewModel : ObservableObject
 {
     private readonly PlannedExerciseService _plannedExerciseService;
+    private readonly INavigationService _navigationService;
+    private readonly IDialogService _dialogService;
     private readonly ILogger<ExercisesViewModel> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExercisesViewModel"/> class.
     /// </summary>
+    /// <remarks>
+    /// Only picks the day to start on. Loading that day's exercises is left to the view's
+    /// appearing event, which asks for it anyway -- doing it here as well started a second load
+    /// that nothing could await and that the first one raced.
+    /// </remarks>
     /// <param name="plannedExerciseService">Service for planned exercise business logic.</param>
+    /// <param name="navigationService">Service for moving between screens.</param>
+    /// <param name="dialogService">Service for prompting the user.</param>
+    /// <param name="uiDispatcher">Marshals collection updates onto the UI thread.</param>
+    /// <param name="timeProvider">Clock used to resolve today's weekday.</param>
     /// <param name="logger">The logger instance for diagnostics.</param>
     public ExercisesViewModel(
         PlannedExerciseService plannedExerciseService,
+        INavigationService navigationService,
+        IDialogService dialogService,
+        TimeProvider timeProvider,
         ILogger<ExercisesViewModel> logger
     )
     {
         _plannedExerciseService = plannedExerciseService;
+        _navigationService = navigationService;
+        _dialogService = dialogService;
         _logger = logger;
-        _selectedDay = DateTime.Today.DayOfWeek;
-        _ = LoadPlannedExercisesAsync();
+
+        // Assigned to the field rather than the property on purpose: setting the property would
+        // fire OnSelectedDayChanged and start a load before the view is ready for one.
+        _selectedDay = timeProvider.GetLocalNow().DayOfWeek;
     }
 
     /// <summary>
@@ -129,33 +152,24 @@ public partial class ExercisesViewModel : ObservableObject
             List<PlannedExercise> exercises =
                 await _plannedExerciseService.GetPlannedExercisesForDayAsync(SelectedDay);
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            PlannedExercises.Clear();
+            foreach (PlannedExercise exercise in exercises)
             {
-                PlannedExercises.Clear();
-                foreach (PlannedExercise exercise in exercises)
-                {
-                    PlannedExercises.Add(exercise);
-                }
-            });
+                PlannedExercises.Add(exercise);
+            }
             _logger.LogInformation("Loaded {Count} planned exercises", exercises.Count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load planned exercises for {Day}", SelectedDay);
-            await Shell.Current.DisplayAlertAsync(
-                "Error",
-                $"Failed to load routine: {ex.Message}",
-                "OK"
-            );
+            await _dialogService.AlertAsync("Error", $"Failed to load routine: {ex.Message}");
         }
     }
 
     [RelayCommand]
     private async Task ViewProgress(PlannedExercise exercise)
     {
-        await Shell.Current.GoToAsync(
-            $"{nameof(ProgressPage)}?ExerciseName={exercise.ExerciseName}"
-        );
+        await _navigationService.GoToExerciseProgressAsync(exercise.ExerciseName);
     }
 
     [RelayCommand]
@@ -169,7 +183,7 @@ public partial class ExercisesViewModel : ObservableObject
         try
         {
             IsBusy = true;
-            bool answer = await Shell.Current.DisplayAlertAsync(
+            bool answer = await _dialogService.ConfirmAsync(
                 "Do you want to remove this item?",
                 "Are you sure? This cannot be undone.",
                 "Delete",
@@ -184,17 +198,16 @@ public partial class ExercisesViewModel : ObservableObject
                 );
                 _ = await _plannedExerciseService.DeletePlannedExerciseAsync(exercise);
                 await LoadPlannedExercisesAsync();
-                await Shell.Current.DisplayAlertAsync(
+                await _dialogService.AlertAsync(
                     "Exercise Removed",
-                    "The planned exercise had been deleted",
-                    "OK"
+                    "The planned exercise had been deleted"
                 );
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete planned exercise {Id}", exercise.Id);
-            await Shell.Current.DisplayAlertAsync("Error", $"Failed to delete: {ex.Message}", "OK");
+            await _dialogService.AlertAsync("Error", $"Failed to delete: {ex.Message}");
         }
         finally
         {
@@ -202,8 +215,7 @@ public partial class ExercisesViewModel : ObservableObject
         }
     }
 
-    public List<DayOfWeek> AvailableDays { get; } =
-    [.. Enum.GetValues<DayOfWeek>().Cast<DayOfWeek>()];
+    public List<DayOfWeek> AvailableDays { get; } = [.. Enum.GetValues<DayOfWeek>()];
 
     [ObservableProperty]
     private DayOfWeek _selectedDay;
@@ -260,7 +272,7 @@ public partial class ExercisesViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to save planned exercise");
-            await Shell.Current.DisplayAlertAsync("Database Error", ex.Message, "OK");
+            await _dialogService.AlertAsync("Database Error", ex.Message);
         }
         finally
         {
