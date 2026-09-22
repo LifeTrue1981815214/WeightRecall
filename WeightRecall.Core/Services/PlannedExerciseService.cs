@@ -132,7 +132,7 @@ public class PlannedExerciseService(
     /// <returns>Number of rows affected.</returns>
     private async Task<int> InsertAsync(PlannedExercise exercise)
     {
-        ValidateExerciseName(exercise);
+        NormalizeExerciseName(exercise);
         return await _repository.AddPlannedExerciseAsync(exercise);
     }
 
@@ -144,7 +144,7 @@ public class PlannedExerciseService(
     /// <returns>Number of rows affected.</returns>
     private async Task<int> ModifyAsync(PlannedExercise exercise)
     {
-        ValidateExerciseName(exercise);
+        NormalizeExerciseName(exercise);
 
         // Read the stored name before overwriting it -- the caller hands us an already-edited
         // instance, so this is the only place the previous name is still available.
@@ -211,15 +211,23 @@ public class PlannedExerciseService(
     }
 
     /// <summary>
-    /// Ensures an exercise carries a usable name.
+    /// Trims an exercise's name and ensures what remains is usable.
     /// </summary>
-    /// <param name="exercise">The exercise to validate.</param>
-    /// <exception cref="ArgumentException">Thrown when exercise name is empty.</exception>
-    private static void ValidateExerciseName(PlannedExercise exercise)
+    /// <remarks>
+    /// The trim is not tidiness. Exercise logs are matched to an exercise by name, so a stray
+    /// trailing space -- which a phone keyboard adds readily -- would file a workout under a
+    /// name that looks identical on screen but does not match, quietly splitting the history.
+    /// This runs before the rename check, so tidying a name is not mistaken for renaming it.
+    /// </remarks>
+    /// <param name="exercise">The exercise to normalize. Its name is rewritten in place.</param>
+    /// <exception cref="ArgumentException">Thrown when the name is empty or only whitespace.</exception>
+    private static void NormalizeExerciseName(PlannedExercise exercise)
     {
         if (string.IsNullOrWhiteSpace(exercise.ExerciseName))
         {
             throw new ArgumentException("Exercise name is required.", nameof(exercise));
         }
+
+        exercise.ExerciseName = exercise.ExerciseName.Trim();
     }
 }

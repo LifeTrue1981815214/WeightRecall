@@ -232,13 +232,53 @@ public partial class ExercisesViewModel : ObservableObject
     [ObservableProperty]
     private string _newPosition = string.Empty;
 
+    /// <summary>
+    /// Works out the position to save at from whatever the user typed in the order box.
+    /// </summary>
+    /// <remarks>
+    /// Leaving the box empty is the ordinary case when adding an exercise -- the user names it
+    /// and expects it at the end of the day's list -- so that is what an empty box means, and
+    /// when editing it means "leave it where it is". Anything else that is not a number is a
+    /// mistake, and it is said out loud: the save button quietly doing nothing reads as the app
+    /// being broken.
+    /// </remarks>
+    /// <returns>The position to save at, or <c>null</c> if the user needs to fix their input.</returns>
+    private async Task<int?> ReadPositionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewPosition))
+        {
+            return IsEditing && _editingExercise is not null
+                ? _editingExercise.Position
+                : PlannedExercises.Count + 1;
+        }
+
+        if (int.TryParse(NewPosition, out int position))
+        {
+            return position;
+        }
+
+        await _dialogService.AlertAsync(
+            "Invalid Order",
+            $"\"{NewPosition}\" is not a number. Leave the order empty to put the exercise last."
+        );
+        return null;
+    }
+
     [RelayCommand]
     private async Task SavePlannedExerciseAsync()
     {
-        if (IsBusy || !int.TryParse(NewPosition, out int position))
+        if (IsBusy)
         {
             return;
         }
+
+        int? typed = await ReadPositionAsync();
+        if (typed is null)
+        {
+            return;
+        }
+
+        int position = typed.Value;
 
         try
         {

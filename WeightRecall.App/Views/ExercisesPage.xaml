@@ -14,54 +14,62 @@
     </ContentPage.ToolbarItems>
 
     <Grid BackgroundColor="{AppThemeBinding Light=White, Dark=Black}">
-        <VerticalStackLayout Padding="10" Spacing="10">
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,0,0,10">
-                <Button
-                    BorderColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
-                    BorderWidth="1"
-                    Text="WeightRecall"
-                    Clicked="OnGoToWeightRecallClicked"
-                    BackgroundColor="{AppThemeBinding Light=White, Dark=Black}"
-                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
-                    WidthRequest="150"
-                    HeightRequest="40"
-                />
-                <Button
-                    Text="Exercises"
-                    Clicked="OnGoToExercisesClicked"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
-                    TextColor="{AppThemeBinding Light=White, Dark=Black}"
-                    WidthRequest="150"
-                    HeightRequest="40"
-                />
-            </HorizontalStackLayout>
+        <!--
+            Two rows, with the list taking the leftover space. It cannot go in a stack layout:
+            that sizes a child to what it measures, an empty CollectionView measures to nothing,
+            and the EmptyView below is then given no room to draw in. A day with no exercises
+            came out as a blank screen rather than a message.
+        -->
+        <Grid Padding="10" RowDefinitions="Auto,*" RowSpacing="10">
+            <VerticalStackLayout Grid.Row="0" Spacing="10">
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,0,0,10">
+                    <Button
+                        BorderColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                        BorderWidth="1"
+                        Text="WeightRecall"
+                        Clicked="OnGoToWeightRecallClicked"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=Black}"
+                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                        WidthRequest="150"
+                        HeightRequest="40"
+                    />
+                    <Button
+                        Text="Exercises"
+                        Clicked="OnGoToExercisesClicked"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                        TextColor="{AppThemeBinding Light=White, Dark=Black}"
+                        WidthRequest="150"
+                        HeightRequest="40"
+                    />
+                </HorizontalStackLayout>
 
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
-                <Label
-                    Text="Showing Routine for:"
-                    VerticalTextAlignment="Center"
-                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                />
-                <Picker
-                    Title="Select Day"
-                    ItemsSource="{Binding AvailableDays}"
-                    SelectedItem="{Binding SelectedDay}"
-                    WidthRequest="150"
-                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                />
-            </HorizontalStackLayout>
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                    <Label
+                        Text="Showing Routine for:"
+                        VerticalTextAlignment="Center"
+                        TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                    />
+                    <Picker
+                        Title="Select Day"
+                        ItemsSource="{Binding AvailableDays}"
+                        SelectedItem="{Binding SelectedDay}"
+                        WidthRequest="150"
+                        TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                    />
+                </HorizontalStackLayout>
 
-            <Line
-                HorizontalOptions="Fill"
-                Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
-            />
+                <Line
+                    HorizontalOptions="Fill"
+                    Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                />
+            </VerticalStackLayout>
 
-            <CollectionView ItemsSource="{Binding PlannedExercises}">
+            <CollectionView Grid.Row="1" ItemsSource="{Binding PlannedExercises}">
                 <CollectionView.EmptyView>
                     <Label
                         FontAttributes="Italic"
                         HorizontalOptions="Center"
-                        Text="No exercises for today"
+                        Text="No exercises for this day"
                         VerticalOptions="Center"
                         TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
                     />
@@ -126,7 +134,7 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-        </VerticalStackLayout>
+        </Grid>
 
         <Grid
             Padding="20"
