@@ -3,8 +3,7 @@ using WeightRecall.Models;
 namespace WeightRecall.Domain;
 
 /// <summary>
-/// Ordering rules for planned exercises, kept free of database and notification
-/// concerns so they can be exercised in isolation.
+/// Ordering rules for planned exercises.
 /// </summary>
 public static class PlannedExerciseOrdering
 {
@@ -13,34 +12,14 @@ public static class PlannedExerciseOrdering
     /// current order.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// When the user types an order number, <paramref name="preferred"/> names the exercise they
-    /// typed it for, and that number is treated as the <em>destination</em> for it: the other
-    /// exercises are ranked among themselves and the preferred one is then slotted in at the
-    /// requested position, pushing whatever was there out of the way.
-    /// </para>
-    /// <para>
-    /// Placing it explicitly — rather than letting it contend for the position and breaking the
-    /// tie in its favour — is what makes the move work in both directions. Winning a tie only
-    /// ever pulls an exercise <em>ahead</em> of the one it collides with, which silently fails
-    /// for downward moves: asking to move from 2 to 3 would put it back at 2.
-    /// </para>
-    /// <para>
-    /// Exercises without a typed position are ranked by their current order, ties broken
-    /// alphabetically by name so the result stays stable and predictable.
-    /// </para>
-    /// <para>
-    /// Exercises are renumbered in place. Only those whose position actually changed are
-    /// returned, so callers can persist the smallest possible number of rows.
-    /// </para>
+    /// <paramref name="preferred"/>'s position is a DESTINATION, not a tie-break: the others are
+    /// ranked among themselves and it is slotted in, pushing whatever sat there out of the way.
+    /// A tie-break would only ever pull an exercise forward, so moving 2 to 3 would silently
+    /// leave it at 2. Out-of-range values clamp to the ends; ties elsewhere break by name.
+    /// Renumbers in place and returns only what changed, so callers write the fewest rows.
     /// </remarks>
-    /// <param name="exercises">The exercises belonging to a single day.</param>
-    /// <param name="preferred">
-    /// The exercise whose <see cref="PlannedExercise.Position"/> should be honoured as a destination,
-    /// matched by <see cref="PlannedExercise.Id"/>. Out-of-range values are clamped to the ends of
-    /// the list. Pass null when no exercise has been singled out.
-    /// </param>
-    /// <returns>The exercises whose <see cref="PlannedExercise.Position"/> was changed.</returns>
+    /// <param name="preferred">Matched by <see cref="PlannedExercise.Id"/>; null when none.</param>
+    /// <returns>The exercises whose position was changed.</returns>
     public static List<PlannedExercise> AssignSequentialPositions(
         IEnumerable<PlannedExercise> exercises,
         PlannedExercise? preferred = null

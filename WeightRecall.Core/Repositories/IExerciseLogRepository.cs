@@ -3,8 +3,7 @@ using WeightRecall.Models;
 namespace WeightRecall.Repositories;
 
 /// <summary>
-/// Abstraction over persistence of exercise logs, so callers can be tested
-/// without a real database.
+/// Persistence of exercise logs.
 /// </summary>
 public interface IExerciseLogRepository
 {
@@ -60,12 +59,9 @@ public interface IExerciseLogRepository
     /// Repoints every log recorded under one exercise name to another name.
     /// </summary>
     /// <remarks>
-    /// Logs are associated with an exercise by name, so a rename has to be followed through to
-    /// them or the history is stranded under a name nothing refers to any more. See
-    /// <c>PlannedExerciseService</c> for when this is and is not applied.
+    /// Logs are keyed by name, so a rename must be followed through or the history is stranded.
+    /// <c>ExerciseRenamePolicy</c> decides when this applies.
     /// </remarks>
-    /// <param name="previousName">The name the logs are currently recorded under.</param>
-    /// <param name="newName">The name to move them to.</param>
     /// <returns>The number of logs moved.</returns>
     Task<int> RenameExerciseAsync(string previousName, string newName);
 }

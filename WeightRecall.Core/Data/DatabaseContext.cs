@@ -37,13 +37,9 @@ public class DatabaseContext : IAsyncDisposable
     /// Creates an initialized, throwaway database for a single test.
     /// </summary>
     /// <remarks>
-    /// Each call gets its own uniquely named file, which <see cref="DisposeAsync"/> deletes.
-    /// A shared ":memory:" database would be simpler but is not safe here: sqlite-net pools
-    /// connections by database path, so every caller of this method would be handed the same
-    /// database. xUnit runs separate test classes in parallel, so tests would see each other's
-    /// rows and one test's dispose would drop the tables out from under another.
+    /// Each call gets its own file, deleted on dispose. It must not become a shared ":memory:"
+    /// database: sqlite-net pools connections by path, so parallel test classes would share one.
     /// </remarks>
-    /// <returns>A ready-to-use <see cref="DatabaseContext"/> isolated from every other test.</returns>
     public static async Task<DatabaseContext> CreateForTestingAsync()
     {
         string path = Path.Combine(Path.GetTempPath(), $"WeightRecall_test_{Guid.NewGuid():N}.db3");

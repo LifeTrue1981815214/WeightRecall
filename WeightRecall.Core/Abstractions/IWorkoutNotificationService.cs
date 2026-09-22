@@ -1,7 +1,7 @@
 namespace WeightRecall.Abstractions;
 
 /// <summary>
-/// Abstraction for scheduling workout reminder notifications.
+/// Schedules the reminders for the days that have exercises planned.
 /// </summary>
 public interface IWorkoutNotificationService
 {

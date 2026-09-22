@@ -1,8 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Plugin.LocalNotification;
 using WeightRecall.Abstractions;
-// Needed by the release schedule below, which a Debug build compiles out -- so Debug reports
-// this using as unnecessary. Removing it breaks the Release build only.
+// Debug reports this as unnecessary: its only use is in the release branch of the #if below.
 using WeightRecall.Domain;
 using WeightRecall.Models;
 using WeightRecall.Repositories;

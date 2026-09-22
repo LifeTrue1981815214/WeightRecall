@@ -12,12 +12,6 @@ namespace WeightRecall.ViewModels;
 /// ViewModel for managing the workout routine exercises.
 /// Allows adding, editing, and deleting planned exercises for different days of the week.
 /// </summary>
-/// <remarks>
-/// Prompting, navigating, marshalling to the UI thread and reading the current day all arrive
-/// through injected services rather than being reached for directly, so the rules here -- add
-/// versus edit, what a cancelled deletion leaves behind, when a command may run -- can be
-/// exercised without a running app.
-/// </remarks>
 public partial class ExercisesViewModel : ObservableObject
 {
     private readonly PlannedExerciseService _plannedExerciseService;
@@ -29,16 +23,9 @@ public partial class ExercisesViewModel : ObservableObject
     /// Initializes a new instance of the <see cref="ExercisesViewModel"/> class.
     /// </summary>
     /// <remarks>
-    /// Only picks the day to start on. Loading that day's exercises is left to the view's
-    /// appearing event, which asks for it anyway -- doing it here as well started a second load
-    /// that nothing could await and that the first one raced.
+    /// Picks the starting day only. That day's exercises are loaded by the view's appearing
+    /// event; doing it here too started a second load that nothing could await.
     /// </remarks>
-    /// <param name="plannedExerciseService">Service for planned exercise business logic.</param>
-    /// <param name="navigationService">Service for moving between screens.</param>
-    /// <param name="dialogService">Service for prompting the user.</param>
-    /// <param name="uiDispatcher">Marshals collection updates onto the UI thread.</param>
-    /// <param name="timeProvider">Clock used to resolve today's weekday.</param>
-    /// <param name="logger">The logger instance for diagnostics.</param>
     public ExercisesViewModel(
         PlannedExerciseService plannedExerciseService,
         INavigationService navigationService,
@@ -52,36 +39,36 @@ public partial class ExercisesViewModel : ObservableObject
         _dialogService = dialogService;
         _logger = logger;
 
-        // Assigned to the field rather than the property on purpose: setting the property would
-        // fire OnSelectedDayChanged and start a load before the view is ready for one.
+        // Field, not the property: setting the property fires OnSelectedDayChanged and would
+        // start a load before the view is ready.
         _selectedDay = timeProvider.GetLocalNow().DayOfWeek;
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the ViewModel is performing an asynchronous operation.
+    /// True while an async operation is running; guards commands against re-entry.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotBusy))]
     private bool _isBusy;
 
     /// <summary>
-    /// Gets a value indicating whether the ViewModel is not busy.
+    /// Inverse of <see cref="IsBusy"/>, for binding.
     /// </summary>
     public bool IsNotBusy => !IsBusy;
 
     /// <summary>
-    /// Gets the collection of planned exercises for the selected day.
+    /// Planned exercises for the selected day.
     /// </summary>
     public ObservableCollection<PlannedExercise> PlannedExercises { get; } = [];
 
     /// <summary>
-    /// Gets or sets a value indicating whether the "Add/Edit" popup is currently visible.
+    /// Whether the Add/Edit popup is showing.
     /// </summary>
     [ObservableProperty]
     private bool _isAddingPlannedExercise;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the current operation is an edit (true) or an add (false).
+    /// True when the popup is editing an existing exercise rather than adding one.
     /// </summary>
     [ObservableProperty]
     private bool _isEditing;
@@ -89,17 +76,17 @@ public partial class ExercisesViewModel : ObservableObject
     private PlannedExercise? _editingExercise;
 
     /// <summary>
-    /// Gets the title for the entry popup based on the current mode (Add/Edit).
+    /// Popup heading for the current mode.
     /// </summary>
     public string PopupTitle => IsEditing ? "Edit Exercise" : "Add New Exercise";
 
     /// <summary>
-    /// Gets the button text for the entry popup based on the current mode (Add/Edit).
+    /// Popup confirm-button text for the current mode.
     /// </summary>
     public string PopupButtonText => IsEditing ? "Update" : "Add";
 
     /// <summary>
-    /// Command to display the popup in "Add" mode.
+    /// Opens the popup in "Add" mode.
     /// </summary>
     [RelayCommand]
     private void ShowAddPlannedExercise()
@@ -111,9 +98,8 @@ public partial class ExercisesViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Command to display the popup in "Edit" mode for a specific planned exercise.
+    /// Opens the popup in "Edit" mode, filled in from the given exercise.
     /// </summary>
-    /// <param name="exercise">The planned exercise to edit.</param>
     [RelayCommand]
     private void ShowEditPlannedExercise(PlannedExercise exercise)
     {
@@ -128,7 +114,7 @@ public partial class ExercisesViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Command to hide the entry popup and reset fields.
+    /// Closes the popup and clears the fields.
     /// </summary>
     [RelayCommand]
     private void HideAddPlannedExercise()
@@ -141,9 +127,8 @@ public partial class ExercisesViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Command to fetch planned exercises from the service for the currently selected day.
+    /// Loads the selected day's planned exercises.
     /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
     [RelayCommand]
     public async Task LoadPlannedExercisesAsync()
     {
@@ -233,16 +218,13 @@ public partial class ExercisesViewModel : ObservableObject
     private string _newPosition = string.Empty;
 
     /// <summary>
-    /// Works out the position to save at from whatever the user typed in the order box.
+    /// Resolves the position to save at from the order box.
     /// </summary>
     /// <remarks>
-    /// Leaving the box empty is the ordinary case when adding an exercise -- the user names it
-    /// and expects it at the end of the day's list -- so that is what an empty box means, and
-    /// when editing it means "leave it where it is". Anything else that is not a number is a
-    /// mistake, and it is said out loud: the save button quietly doing nothing reads as the app
-    /// being broken.
+    /// Empty means "put it last" when adding and "leave it where it is" when editing. Anything
+    /// else non-numeric is reported, because a save button that does nothing reads as a bug.
     /// </remarks>
-    /// <returns>The position to save at, or <c>null</c> if the user needs to fix their input.</returns>
+    /// <returns>The position to save at, or <c>null</c> if the input needs fixing.</returns>
     private async Task<int?> ReadPositionAsync()
     {
         if (string.IsNullOrWhiteSpace(NewPosition))

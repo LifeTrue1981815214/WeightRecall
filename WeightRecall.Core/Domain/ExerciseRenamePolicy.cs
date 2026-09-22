@@ -3,8 +3,7 @@ using WeightRecall.Models;
 namespace WeightRecall.Domain;
 
 /// <summary>
-/// Rules deciding whether a planned exercise was renamed and whether its logged history should
-/// follow, kept free of database concerns so they can be exercised in isolation.
+/// Decides whether an exercise was renamed, and whether its logged history should follow.
 /// </summary>
 public static class ExerciseRenamePolicy
 {
@@ -12,13 +11,9 @@ public static class ExerciseRenamePolicy
     /// Determines whether an edit actually changed the exercise's name.
     /// </summary>
     /// <remarks>
-    /// Compared with <see cref="StringComparison.Ordinal"/> on purpose. A change of casing alone
-    /// is a real rename here, because logs are matched with SQL <c>=</c>, which is case-sensitive:
-    /// treating "dips" and "Dips" as the same name would leave the history behind.
+    /// Ordinal on purpose: a casing-only change IS a rename, because logs are matched with SQL
+    /// <c>=</c>, which is case-sensitive. Treating "dips" and "Dips" as equal strands the history.
     /// </remarks>
-    /// <param name="previousName">The name the exercise was stored under, or null if unknown.</param>
-    /// <param name="currentName">The name the exercise now carries.</param>
-    /// <returns>True when the name changed and the history needs considering.</returns>
     public static bool IsRename(string? previousName, string currentName)
     {
         return previousName is not null
@@ -29,15 +24,10 @@ public static class ExerciseRenamePolicy
     /// Determines whether logged history recorded under the previous name should move to the new one.
     /// </summary>
     /// <remarks>
-    /// Logs are associated with an exercise by name rather than by id, which is deliberate: the
-    /// same movement planned on two different days is two rows but one training history. So the
-    /// history only moves when nothing else still answers to the old name -- otherwise renaming
-    /// the Monday entry would take the logs away from the Thursday one that is still using them.
+    /// Logs are keyed by name, not id, so the same movement planned on two days shares one
+    /// history. It therefore only moves when nothing else still answers to the old name --
+    /// otherwise renaming the Monday entry would take the logs from the Thursday one.
     /// </remarks>
-    /// <param name="allPlanned">Every planned exercise, across all days.</param>
-    /// <param name="renamed">The exercise that was renamed, excluded from the search by its id.</param>
-    /// <param name="previousName">The name the exercise was stored under.</param>
-    /// <returns>True when the previous name is now unused and its history should follow the rename.</returns>
     public static bool ShouldMoveHistory(
         IEnumerable<PlannedExercise> allPlanned,
         PlannedExercise renamed,

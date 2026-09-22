@@ -1,108 +1,209 @@
-NOTE ON TEST ISOLATION
+WEIGHTRECALL — TEST PLAN AND OPEN WORK
+
+
+== NOTE ON TEST ISOLATION ==
+
 DatabaseContext.CreateForTestingAsync() gives each caller its own temp database file, deleted on
 dispose. It must NOT go back to a shared ":memory:" database: sqlite-net pools connections by
 database path, so every test would share one database. xUnit runs separate test CLASSES in
 parallel, so tests then see each other's rows and one test's dispose drops the tables mid-run.
 A single test class hides this; it appears as soon as a second class is added.
 
-Repository Layer (against a real in-memory/temp SQLite DB)
+
+== ALREADY COVERED — do not re-add ==
+
+ExerciseLogRepositoryTests
+  Save a new log (Id=0) inserts and assigns a new Id
+  Save an existing log (Id>0) updates in place rather than duplicating
+  RenameExerciseAsync moves only the matching logs to the new name
+    (regression guard: this is the only method naming the table in raw SQL, so the compiler
+     cannot check it. A type rename once rewrote that string while [Table] stayed pinned.)
+
+WeeklyNotificationScheduleTests — complete
+  This is the schedule that SHIPS. An #if DEBUG replaces it with a 30-second timer during
+  development, so these tests are its only coverage. Do not delete them.
+
+Partially covered, still worth finishing:
+  GetExerciseLogForDateAsync — a matching log comes back, but exclusion of OTHER dates is untested
+  GetLatestLogForExerciseAsync — returns the one log present, but "most recent" and "not after
+    the given date" are both untested, which is the whole point of the method
+
+
+== OPEN WORK — deferred decisions and known defects ==
+
+These were TODO comments in the code. Deferred until the workout model settles.
+
+Backup format (WeightRecall.Core/Serialization, Models/BackupData)
+  BackupTextFormat.SplitCsvLine does not undo the quote doubling CsvEscape writes. Every quote
+    is treated as a delimiter and dropped, so `Farmer's "heavy" carry` restores as
+    `Farmer's heavy carry`, and a comma after an embedded quote splits the field in the wrong
+    place. Old files are valid CSV — the writer was always correct — so fixing the reader
+    breaks nothing.
+  BackupData.Version is written on export and never read on import. A file from a future format
+    is read as though it were v1, which fails silently: unknown keys are ignored and the
+    affected section restores empty.
+  BackupData.IsEmpty exists but nothing calls it. BackupService.ApplyAsync deletes both tables
+    before inserting, so a file that parses to zero rows wipes everything. Reachable today: any
+    .txt with no recognizable section, or a .json of "{}".
+  ApplyAsync is not a transaction. A failure between the deletes and the inserts leaves the user
+    with neither their old data nor the restored data.
+  The .db3 import path copies whatever file was picked over the live database with no validation
+    at all — not even a check that it is SQLite with the expected tables.
+  SettingsPage.DbPath duplicates the literal in MauiProgram. If one changes, export silently
+    targets the wrong file.
+  The JSON keys "RoutineItems" / "WorkoutLogs" / "Order" and the matching text section headers
+    are pinned to the pre-rename names. Unpin only behind a Version bump that can migrate old
+    files.
+
+Database schema
+  [Table("RoutineItems")] and [Table("WorkoutLogs")], and [Column("Order")] on
+  PlannedExercise.Position, are pinned to pre-rename names. sqlite-net derives them from the C#
+  names, so changing them orphans the rows in every installed copy.
+  To unpin: PRAGMA user_version plus ALTER TABLE ... RENAME TO / RENAME COLUMN, run inside
+  InitializeAsync BEFORE CreateTableAsync (otherwise an empty new table is created first and the
+  rename fails), gated on the old table existing in sqlite_master rather than on the version
+  number alone — android:allowBackup can restore an old database onto a new install — all in one
+  transaction. Keep the backup file format decoupled from this.
+
+Other known defects
+  The Progress page labels the window "Last 30 Days", but ExerciseProgressService uses
+    AddMonths(-1), a calendar month. Decide which is right BEFORE pinning a test.
+  ExerciseLogService.GetDailyExerciseLogsAsync does N+1 queries: one GetLatestLogForExerciseAsync
+    per planned exercise. Needs a new repository query, so it is a behaviour change.
+
+
+== REPOSITORY LAYER (against a real temp SQLite DB) ==
+
 ExerciseLogRepository
+  GetExerciseLogForDateAsync returns ONLY logs matching the given date
+  GetLatestLogForExerciseAsync returns the most recent log before the given date, not after
+  GetLogsForExerciseInDateRangeAsync respects the bounds (check the inclusive/exclusive edges)
+  Deleting a log removes it from subsequent queries
 
-Save a new log (Id=0) → verify it gets inserted with a new Id
-Save an existing log (Id>0) → verify it updates in place
-GetExerciseLogForDateAsync returns only logs matching the given date
-GetLatestLogForExerciseAsync returns the most recent log before the given date, not after
-GetLogsForExerciseInDateRangeAsync returns only logs within the bounds (inclusive/exclusive edge cases)
-Deleting a log removes it from subsequent queries
 PlannedExerciseRepository
+  GetPlannedExercisesForDayAsync returns only that day's exercises, sorted by Position
+  Exercises on two different days each come back under their own day
+  Delete removes only the target exercise
 
-GetPlannedExercisesForDayAsync returns only exercises for the requested day, sorted by Position
-Adding two exercises for the same day and different days → each day query returns correct subset
-Delete removes only the target exercise
-Service Layer (repositories wired to a real temp DB)
-PlannedExerciseService
 
-Adding an exercise with an empty name throws/fails validation
-After AddPlannedExerciseAsync, calling ReorderPlannedExercisesAsync produces sequential 1-based ordering
-Moving an exercise to a different day (SavePlannedExerciseAsync with oldDay) removes it from the old day and reorders both days
-DeletePlannedExerciseAsync leaves remaining exercises with gapless order
-Each mutating operation calls IWorkoutNotificationService.ScheduleDailyNotifications() exactly once (mock the notification service)
-SavePlannedExerciseAsync passes the saved exercise as `preferred`, so the order number the user
-  typed is the position it ends up in
-Renaming an exercise carries its logged history with it (logs are keyed by name, so without
-  this the history is stranded and the exercise appears to start from zero):
-  - rename via UpdatePlannedExerciseAsync moves every matching ExerciseLog to the new name
-  - rename via SavePlannedExerciseAsync (the path the UI actually uses) does the same
-  - editing only Position or DayOfWeek leaves the logs completely untouched
-  - history is NOT moved when another planned exercise still uses the old name -- e.g. the same
-    movement planned on Monday and Thursday shares one history, and renaming the Monday entry
-    must not take the logs away from the Thursday one
-  - a case-only rename ("dips" -> "Dips") still moves the logs, since the log lookup compares
-    names with SQL `=`, which is case-sensitive
-ExerciseRenamePolicy (pure, no DB needed -- the two rules above, reachable without setting up rows)
+== DOMAIN (pure — no database needed) ==
 
-IsRename is false for an unchanged name and for a null previous name
-IsRename is TRUE for a case-only change ("dips" -> "Dips") -- the log lookup uses SQL `=`, which
-  is case-sensitive, so treating these as equal would strand the history
-ShouldMoveHistory is true when no other planned exercise answers to the old name
-ShouldMoveHistory is FALSE when another day still uses it (Monday renamed, Thursday still
-  training "Bench Press" -- the logs belong to Thursday too)
-The renamed exercise never blocks its own move: it is excluded by Id, even if the row passed in
-  still carries the old name
+PlannedExerciseOrdering.AssignSequentialPositions
+  Gaps are closed: positions 1,5,9 become 1,2,3
+  Ties on Position break alphabetically by name when `preferred` is null
+  `preferred`'s Position is a DESTINATION INDEX, not a tie-break. Cover both directions:
+    moving UP   (2 -> 1) puts it first and pushes the old occupant down
+    moving DOWN (2 -> 3) puts it third — REGRESSION GUARD: a tie-break implementation silently
+      leaves it at 2, which is the bug this replaced
+  Out-of-range typed positions clamp: 99 lands last, 0 or negative lands first
+  `preferred` is matched by Id, not reference (callers pass DB-loaded instances)
+  An unsaved `preferred` (Id = 0) is still matched, by reference
+  Only exercises whose Position actually changed are returned
+  An already-sequential list, and an empty list, both return no changes
 
-PlannedExerciseOrdering.AssignSequentialPositions (pure, no DB needed)
+ExerciseRenamePolicy
+  IsRename is false for an unchanged name and for a null previous name
+  IsRename is TRUE for a case-only change ("dips" -> "Dips") — the log lookup uses SQL `=`,
+    which is case-sensitive, so treating these as equal strands the history
+  ShouldMoveHistory is true when no other planned exercise answers to the old name
+  ShouldMoveHistory is FALSE when another day still uses it (Monday renamed, Thursday still
+    training "Bench Press" — the logs belong to Thursday too)
+  The renamed exercise never blocks its own move: excluded by Id, even when the row passed in
+    still carries the old name
 
-Gaps are closed: positions 1,5,9 become 1,2,3
-Ties on Position are broken alphabetically by exercise name when `preferred` is null
-`preferred`'s Position is a DESTINATION INDEX, not a tie-break. Both directions must be covered:
-  - moving UP   (2 -> 1) puts it first and pushes the old occupant down
-  - moving DOWN (2 -> 3) puts it third -- REGRESSION GUARD: a tie-break implementation
-    silently leaves it at 2, which is the bug this replaced
-Out-of-range typed positions clamp: 99 lands last, 0 or negative lands first
-`preferred` is matched by Id, not reference (callers pass DB-loaded instances)
-An unsaved `preferred` (Id = 0) is still matched, by reference
-Only the exercises whose Position actually changed are returned
-An already-sequential list returns no changes (so no redundant DB writes)
-An empty list returns no changes
-DailyExerciseLogBuilder (pure, no DB needed)
+DailyExerciseLogBuilder
+  Build returns the EXISTING log INSTANCE when one is saved for that date, with only its
+    PreviousDescription updated — it must not be replaced, or the user's typed values are lost
+  Build returns an all-zero placeholder carrying the planned exercise's name when nothing is logged
+  FindExistingLog matches on name case-insensitively ("bench press" finds "Bench Press")
+  DescribePrevious formats as "Prev: {weight}kg | {sets} sets | {reps} reps"
+  DescribePrevious returns NoPreviousData for a null previous log
 
-Build returns the EXISTING log instance when one is already saved for that date, with only its
-  PreviousDescription updated -- it must not be replaced, or the user's typed values are lost
-Build returns an all-zero placeholder carrying the planned exercise's name when nothing is logged
-FindExistingLog matches on name case-insensitively ("bench press" finds "Bench Press")
-DescribePrevious formats as "Prev: {weight}kg | {sets} sets | {reps} reps"
-DescribePrevious returns NoPreviousData for a null previous log
+ExerciseProgressHistory.Summarize
+  Several logs on one date collapse to ONE point carrying that date's max weight
+  Points come back oldest first
+  An empty input returns no points
 
-ExerciseProgressHistory.Summarize (pure, no DB needed)
-
-Several logs on one date collapse to ONE point carrying that date's max weight
-Points come back oldest first
-An empty input returns no points
+WeekCalendar  (was DateService; now static, in Domain)
+  GetMonday returns Monday for mid-week, for Monday itself, and for the Sunday edge case
+  GetDaysOfWeek returns exactly 7 consecutive days starting on Monday
 
 ExerciseLog
+  HasRecordedActivity is false only when weight, sets and reps are ALL zero — this is what stops
+    untouched placeholder rows being written on every save
 
-HasRecordedActivity is false only when weight, sets and reps are ALL zero -- this is what stops
-  untouched placeholder rows being written on every save
 
-ExerciseLogService (repository wired to a real temp DB)
+== SERVICE LAYER (repositories wired to a real temp DB) ==
 
-GetDailyExerciseLogsAsync returns one row per planned exercise for that day, in routine order
-GetDailyExerciseLogsAsync looks up "previous" strictly BEFORE the selected date, never the day itself
-SaveExerciseLogsAsync writes only the rows where HasRecordedActivity is true
+PlannedExerciseService
+  An empty or whitespace-only name is rejected
+  A name is TRIMMED before it is stored ("  Chin UPS " -> "Chin UPS") — logs are matched by
+    exact name, so a stray space silently splits the history
+  Trimming is NOT treated as a rename: "Squat " -> "Squat" must leave the logs untouched
+  A genuine rename typed with untrimmed input still carries its history to the trimmed name
+  After AddPlannedExerciseAsync, ReorderPlannedExercisesAsync produces sequential 1-based order
+  Moving an exercise to another day (SavePlannedExerciseAsync with oldDay) removes it from the
+    old day and renumbers BOTH days
+  DeletePlannedExerciseAsync leaves the remaining exercises gapless
+  Each mutating operation calls IWorkoutNotificationService.ScheduleDailyNotifications() exactly
+    once (fake the notification service)
+  SavePlannedExerciseAsync passes the saved exercise as `preferred`, so the typed order number
+    is the position it ends up in
+  Renaming carries logged history with it (logs are keyed by name, so without this the history
+    is stranded and the exercise appears to start from zero):
+    via UpdatePlannedExerciseAsync, and via SavePlannedExerciseAsync (the path the UI uses)
+    editing only Position or DayOfWeek leaves the logs completely untouched
+    history is NOT moved when another planned exercise still uses the old name
 
-ExerciseProgressService (inject a TimeProvider so "today" is fixed)
+ExerciseLogService
+  GetDailyExerciseLogsAsync returns one row per planned exercise for that day, in routine order
+  GetDailyExerciseLogsAsync looks up "previous" strictly BEFORE the selected date, never the day itself
+  SaveExerciseLogsAsync writes only the rows where HasRecordedActivity is true
 
-The query window runs from one CALENDAR MONTH back to the injected today -- so its length varies:
-  2026-09-15 -> 2026-08-15, 2026-03-31 -> 2026-02-28, 2026-01-31 -> 2025-12-31
-NOTE: the Progress page labels this "Last 30 Days", which does not match a calendar month.
-  Decide which is right -- change the label, or switch to AddDays(-30) -- before pinning a test.
-Logs outside the window are excluded
-DateService
+ExerciseProgressService  (inject a TimeProvider so "today" is fixed)
+  The window runs one CALENDAR MONTH back from the injected today, so its length varies:
+    2026-09-15 -> 2026-08-15, 2026-03-31 -> 2026-02-28, 2026-01-31 -> 2025-12-31
+  Logs outside the window are excluded
+  NOTE: settle the "Last 30 Days" label question above before pinning these
 
-GetMonday returns Monday for mid-week, Monday itself, and Sunday edge cases
-GetDaysOfWeek returns exactly 7 consecutive days starting on Monday
-Cross-Layer / End-to-End Flows
-Full routine setup → workout log: Add exercises to Monday routine → call GetDailyExerciseLogsAsync on a Monday → exercises appear with empty logs
-Previous week context: Log a workout on Day N → call GetDailyExerciseLogsAsync on Day N+7 → PreviousDescription reflects Day N data
-Progress chart data: Insert 5 logs for the same exercise across 3 dates (multiple on one date) → GetExerciseProgressHistoryAsync returns 3 points with correct max weights
-The most valuable tests to write first would be ExerciseLogService.GetDailyExerciseLogsAsync and PlannedExerciseOrdering — these contain the most complex business logic that's easy to break silently.
+
+== VIEW MODELS (now in Core — fake IDialogService and INavigationService,
+   inject a TimeProvider) ==
+
+MainViewModel
+  Constructs without touching the database — the load belongs to the page's OnAppearing, and a
+    second one started here would race it
+  Opens on today, with the current week's Monday–Sunday in the strip
+  NextWeek refuses to advance past the current week; PreviousWeek then NextWeek returns
+  IsNotToday flips with SelectedDate, and GoToToday clears it
+  DeleteLog on an UNSAVED row (Id == 0) removes it WITHOUT prompting
+  DeleteLog on a saved row prompts, and a cancelled prompt leaves both list and database intact
+  SaveLogs confirms to the user and clears IsBusy
+
+ExercisesViewModel
+  Constructs without touching the database; starts on today's weekday
+  Add: name plus order saves, closes the popup and clears the fields
+  Edit populates the form from the exercise, and PopupTitle/PopupButtonText follow IsEditing
+  An EMPTY order adds to the end; when editing, it leaves the position unchanged
+  A non-numeric order raises "Invalid Order" and leaves the input intact to be corrected
+    (note: the Entry uses Keyboard="Numeric", so this is reachable only via a hardware keyboard,
+     paste, or an unusual IME — it is a defensive branch)
+  Changing SelectedDay reloads that day's exercises
+  Deleting prompts; cancelling keeps the exercise in both list and database
+  HideAddPlannedExercise resets IsEditing, IsAddingPlannedExercise and both text fields
+
+
+== CROSS-LAYER FLOWS ==
+
+Routine setup to workout log: add exercises to Monday, call GetDailyExerciseLogsAsync on a
+  Monday, exercises appear with empty logs
+Previous-week context: log a workout on day N, call GetDailyExerciseLogsAsync on day N+7,
+  PreviousDescription reflects day N
+Progress chart: insert 5 logs for one exercise across 3 dates (several on one date),
+  GetExerciseProgressHistoryAsync returns 3 points with the correct max weights
+
+
+== WHERE TO START ==
+
+ExerciseLogService.GetDailyExerciseLogsAsync and PlannedExerciseOrdering — the most complex
+logic in the app, and the easiest to break silently.

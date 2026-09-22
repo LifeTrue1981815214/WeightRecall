@@ -161,13 +161,9 @@ public class ExerciseLogRepository(DatabaseContext context, ILogger<ExerciseLogR
     }
 
     /// <summary>
-    /// Runs a database operation against an initialized connection. Any failure is
-    /// reported through <paramref name="logFailure"/> and then rethrown unchanged.
+    /// Runs an operation against an initialized connection, logging any failure through
+    /// <paramref name="logFailure"/> before rethrowing it unchanged.
     /// </summary>
-    /// <typeparam name="T">The result type of the operation.</typeparam>
-    /// <param name="operation">The operation to run against the connection.</param>
-    /// <param name="logFailure">Callback that logs the failure before it is rethrown.</param>
-    /// <returns>The result of the operation.</returns>
     private async Task<T> ExecuteAsync<T>(
         Func<SQLiteAsyncConnection, Task<T>> operation,
         Action<Exception> logFailure

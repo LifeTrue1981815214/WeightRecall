@@ -7,10 +7,6 @@ namespace WeightRecall.Views;
 /// </summary>
 public partial class MainPage : ContentPage
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MainPage"/> class.
-    /// </summary>
-    /// <param name="viewModel">The view model for this page.</param>
     public MainPage(MainViewModel viewModel)
     {
         InitializeComponent();
@@ -18,13 +14,9 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
-    /// Triggered when the page appears on screen. Refresh the daily exercise list.
+    /// Refreshes the daily exercise list. The only place the first load starts from; the view
+    /// model must not start one of its own, or the two race.
     /// </summary>
-    /// <remarks>
-    /// This is the only place the first load is started from. The view model used to kick one
-    /// off in its constructor as well, and the two raced -- whichever arrived second was thrown
-    /// away by the busy guard.
-    /// </remarks>
     protected override void OnAppearing()
     {
         base.OnAppearing();
@@ -34,17 +26,11 @@ public partial class MainPage : ContentPage
         }
     }
 
-    /// <summary>
-    /// Navigation helper to go to the Exercises page.
-    /// </summary>
     private async void OnGoToExercisesClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("//ExercisesPage");
     }
 
-    /// <summary>
-    /// Navigation helper to go to the Main page.
-    /// </summary>
     private async void OnGoToWeightRecallClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("//MainPage");

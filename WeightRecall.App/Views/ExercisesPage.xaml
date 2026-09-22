@@ -14,12 +14,8 @@
     </ContentPage.ToolbarItems>
 
     <Grid BackgroundColor="{AppThemeBinding Light=White, Dark=Black}">
-        <!--
-            Two rows, with the list taking the leftover space. It cannot go in a stack layout:
-            that sizes a child to what it measures, an empty CollectionView measures to nothing,
-            and the EmptyView below is then given no room to draw in. A day with no exercises
-            came out as a blank screen rather than a message.
-        -->
+        <!-- The list needs a row that claims the leftover space. In a stack layout an empty
+             CollectionView measures to nothing, leaving the EmptyView no room to draw. -->
         <Grid Padding="10" RowDefinitions="Auto,*" RowSpacing="10">
             <VerticalStackLayout Grid.Row="0" Spacing="10">
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,0,0,10">

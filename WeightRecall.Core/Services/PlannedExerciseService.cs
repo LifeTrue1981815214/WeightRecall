@@ -10,9 +10,8 @@ namespace WeightRecall.Services;
 /// Service for managing business logic related to planned exercises.
 /// </summary>
 /// <remarks>
-/// Every public method that changes the routine leaves it in a consistent state and reschedules
-/// notifications exactly once before returning. The private helpers those methods are built from
-/// deliberately do neither, so they can be composed without redundant work.
+/// Every public method that changes the routine reschedules notifications exactly once before
+/// returning. The private helpers do not, so they can be composed without redundant work.
 /// </remarks>
 /// <param name="repository">The planned exercise repository.</param>
 /// <param name="exerciseLogRepository">The exercise log repository, so renames carry their history.</param>
@@ -33,8 +32,6 @@ public class PlannedExerciseService(
     /// <summary>
     /// Retrieves the exercises planned for a specific day.
     /// </summary>
-    /// <param name="day">Day of the week.</param>
-    /// <returns>A list of <see cref="PlannedExercise"/>.</returns>
     public async Task<List<PlannedExercise>> GetPlannedExercisesForDayAsync(DayOfWeek day)
     {
         _logger.LogDebug("Retrieving planned exercises for {Day}", day);
@@ -44,9 +41,6 @@ public class PlannedExerciseService(
     /// <summary>
     /// Adds a new planned exercise and updates the notifications.
     /// </summary>
-    /// <param name="exercise">The exercise to add.</param>
-    /// <returns>Number of rows affected.</returns>
-    /// <exception cref="ArgumentException">Thrown when exercise name is empty.</exception>
     public async Task<int> AddPlannedExerciseAsync(PlannedExercise exercise)
     {
         int result = await InsertAsync(exercise);
@@ -57,9 +51,6 @@ public class PlannedExerciseService(
     /// <summary>
     /// Updates an existing planned exercise and updates notifications.
     /// </summary>
-    /// <param name="exercise">The exercise to update.</param>
-    /// <returns>Number of rows affected.</returns>
-    /// <exception cref="ArgumentException">Thrown when exercise name is empty.</exception>
     public async Task<int> UpdatePlannedExerciseAsync(PlannedExercise exercise)
     {
         int result = await ModifyAsync(exercise);
@@ -71,8 +62,6 @@ public class PlannedExerciseService(
     /// Deletes a planned exercise, closes the gap it leaves in that day's ordering,
     /// and updates notifications.
     /// </summary>
-    /// <param name="exercise">The exercise to delete.</param>
-    /// <returns>Number of rows deleted.</returns>
     public async Task<int> DeletePlannedExerciseAsync(PlannedExercise exercise)
     {
         _logger.LogInformation(
@@ -90,8 +79,6 @@ public class PlannedExerciseService(
     /// <summary>
     /// Renumbers a day's exercises sequentially and updates notifications.
     /// </summary>
-    /// <param name="day">Day of the week to reorder.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task ReorderPlannedExercisesAsync(DayOfWeek day)
     {
         await ResequenceAsync(day);
@@ -103,14 +90,9 @@ public class PlannedExerciseService(
     /// every day it affects and updates notifications.
     /// </summary>
     /// <remarks>
-    /// The saved exercise is passed through as the preferred one while its day is renumbered, so
-    /// the position the user typed is the position it ends up in, and whatever was sitting there
-    /// is pushed out of the way.
+    /// Passed through as <c>preferred</c> while its day is renumbered, so the typed position is
+    /// the one it ends up in.
     /// </remarks>
-    /// <param name="exercise">The planned exercise to save.</param>
-    /// <param name="oldDay">Optional previous day if the exercise was moved between days.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown when exercise name is empty.</exception>
     public async Task SavePlannedExerciseAsync(PlannedExercise exercise, DayOfWeek? oldDay = null)
     {
         _ = exercise.Id == 0 ? await InsertAsync(exercise) : await ModifyAsync(exercise);
@@ -126,10 +108,8 @@ public class PlannedExerciseService(
     }
 
     /// <summary>
-    /// Validates and inserts an exercise, without touching notifications.
+    /// Normalizes and inserts an exercise, without touching notifications.
     /// </summary>
-    /// <param name="exercise">The exercise to insert.</param>
-    /// <returns>Number of rows affected.</returns>
     private async Task<int> InsertAsync(PlannedExercise exercise)
     {
         NormalizeExerciseName(exercise);
@@ -137,17 +117,15 @@ public class PlannedExerciseService(
     }
 
     /// <summary>
-    /// Validates and updates an exercise, carrying its logged history along if it was renamed,
-    /// and without touching notifications.
+    /// Normalizes and updates an exercise, carrying its logged history if it was renamed, and
+    /// without touching notifications.
     /// </summary>
-    /// <param name="exercise">The exercise to update.</param>
-    /// <returns>Number of rows affected.</returns>
     private async Task<int> ModifyAsync(PlannedExercise exercise)
     {
         NormalizeExerciseName(exercise);
 
-        // Read the stored name before overwriting it -- the caller hands us an already-edited
-        // instance, so this is the only place the previous name is still available.
+        // The caller hands us an already-edited instance, so this is the last chance to read
+        // the previous name.
         PlannedExercise? stored = await _repository.GetPlannedExerciseAsync(exercise.Id);
         string? previousName = stored?.ExerciseName;
 
@@ -165,12 +143,8 @@ public class PlannedExerciseService(
     /// Moves logged history from an exercise's previous name onto its new one.
     /// </summary>
     /// <remarks>
-    /// Whether the history moves at all is decided by <see cref="ExerciseRenamePolicy"/>; this
-    /// method only fetches what that decision needs and carries it out.
+    /// <see cref="ExerciseRenamePolicy"/> decides whether it moves; this only carries it out.
     /// </remarks>
-    /// <param name="previousName">The name the exercise was stored under.</param>
-    /// <param name="renamed">The exercise as it is now named.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task CarryHistoryToNewNameAsync(string previousName, PlannedExercise renamed)
     {
         List<PlannedExercise> planned = await _repository.GetPlannedExercisesAsync();
@@ -193,7 +167,6 @@ public class PlannedExerciseService(
     /// </summary>
     /// <param name="day">Day of the week to renumber.</param>
     /// <param name="preferred">The exercise that should win a contested position, if any.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task ResequenceAsync(DayOfWeek day, PlannedExercise? preferred = null)
     {
         List<PlannedExercise> exercises = await _repository.GetPlannedExercisesForDayAsync(day);
@@ -214,13 +187,11 @@ public class PlannedExerciseService(
     /// Trims an exercise's name and ensures what remains is usable.
     /// </summary>
     /// <remarks>
-    /// The trim is not tidiness. Exercise logs are matched to an exercise by name, so a stray
-    /// trailing space -- which a phone keyboard adds readily -- would file a workout under a
-    /// name that looks identical on screen but does not match, quietly splitting the history.
-    /// This runs before the rename check, so tidying a name is not mistaken for renaming it.
+    /// Logs are matched by name, so a trailing space would file a workout under a name that
+    /// looks identical but does not match. Runs before the rename check, so tidying a name is
+    /// not mistaken for renaming it.
     /// </remarks>
-    /// <param name="exercise">The exercise to normalize. Its name is rewritten in place.</param>
-    /// <exception cref="ArgumentException">Thrown when the name is empty or only whitespace.</exception>
+    /// <exception cref="ArgumentException">The name is empty or only whitespace.</exception>
     private static void NormalizeExerciseName(PlannedExercise exercise)
     {
         if (string.IsNullOrWhiteSpace(exercise.ExerciseName))

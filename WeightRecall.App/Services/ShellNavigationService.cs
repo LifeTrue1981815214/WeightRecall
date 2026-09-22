@@ -14,8 +14,8 @@ public class ShellNavigationService : INavigationService
     /// <inheritdoc />
     public Task GoToExerciseProgressAsync(string exerciseName)
     {
-        // The name travels in the query string, so anything in it that has a meaning there --
-        // an ampersand, a space, a plus -- has to be escaped or the page receives a truncated name.
+        // Escaped because the name travels in a query string; an ampersand or plus in it
+        // would otherwise truncate what the page receives.
         return Shell.Current.GoToAsync(
             $"{nameof(ProgressPage)}?ExerciseName={Uri.EscapeDataString(exerciseName)}"
         );

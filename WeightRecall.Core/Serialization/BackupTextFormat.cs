@@ -14,13 +14,12 @@ namespace WeightRecall.Serialization;
 /// </remarks>
 public static class BackupTextFormat
 {
-    // Section names predate the renames to PlannedExercise and ExerciseLog and are pinned for
-    // the same reason as the JSON keys; see BackupData. The writer and the reader must use
-    // these same two constants, or an exported file will not read back.
+    // Pinned pre-rename names; see BackupData. Writer and reader share these constants so an
+    // exported file always reads back.
     private const string PlannedExerciseSection = "RoutineItems";
     private const string ExerciseLogSection = "WorkoutLogs";
 
-    // The trailing column here is the pinned pre-rename name of PlannedExerciseBackup.Position.
+    // The trailing column is the pinned pre-rename name of PlannedExerciseBackup.Position.
     private const string PlannedExerciseHeader = "ExerciseName,DayOfWeek,Order";
     private const string ExerciseLogHeader = "Date,ExerciseName,Sets,Reps,Weight";
 
@@ -57,10 +56,8 @@ public static class BackupTextFormat
     /// Reads a backup from text.
     /// </summary>
     /// <remarks>
-    /// Lines that do not carry enough columns are skipped. Text that contains no recognizable
-    /// section at all is not an error: it parses to an empty backup.
-    /// TODO: that silence is dangerous, because restoring an empty backup erases everything.
-    /// See <see cref="BackupData.IsEmpty"/>.
+    /// Rows with too few columns are skipped, and text with no recognizable section parses to an
+    /// empty backup rather than failing.
     /// </remarks>
     /// <exception cref="FormatException">A value in a data row could not be parsed.</exception>
     public static BackupData Parse(string content)
@@ -132,10 +129,8 @@ public static class BackupTextFormat
     /// Splits one CSV line into its fields, ignoring commas inside a quoted field.
     /// </summary>
     /// <remarks>
-    /// TODO: this does not undo the doubled quotes that <see cref="CsvEscape"/> writes. Every
-    /// quote character is treated as a delimiter and dropped, so a name containing one does not
-    /// survive a round trip, and a comma after it lands outside the quoted run and splits the
-    /// field in the wrong place.
+    /// Does NOT undo the doubling that <see cref="CsvEscape"/> writes: every quote is treated as
+    /// a delimiter and dropped, so a name containing one does not survive a round trip.
     /// </remarks>
     private static string[] SplitCsvLine(string line)
     {

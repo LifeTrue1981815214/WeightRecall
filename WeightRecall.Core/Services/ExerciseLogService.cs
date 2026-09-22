@@ -8,9 +8,6 @@ namespace WeightRecall.Services;
 /// <summary>
 /// Service for managing exercise logs and computing exercise progress.
 /// </summary>
-/// <param name="repository">The exercise log repository.</param>
-/// <param name="plannedExerciseRepository">The planned exercise repository to cross-reference exercises.</param>
-/// <param name="logger">The logger instance for diagnostics.</param>
 public class ExerciseLogService(
     IExerciseLogRepository repository,
     IPlannedExerciseRepository plannedExerciseRepository,
@@ -25,8 +22,6 @@ public class ExerciseLogService(
     /// <summary>
     /// Retrieves all exercise logs for a given date.
     /// </summary>
-    /// <param name="date">Target date.</param>
-    /// <returns>A list of <see cref="ExerciseLog"/> entries.</returns>
     public async Task<List<ExerciseLog>> GetExerciseLogsForDate(DateTime date)
     {
         _logger.LogDebug("Retrieving exercise logs for {Date}", date);
@@ -36,8 +31,6 @@ public class ExerciseLogService(
     /// <summary>
     /// Saves a single exercise log entry.
     /// </summary>
-    /// <param name="log">The exercise log to save.</param>
-    /// <returns>The number of rows affected.</returns>
     public async Task<int> SaveExerciseLog(ExerciseLog log)
     {
         _logger.LogInformation("Saving exercise log for {Exercise}", log.ExerciseName);
@@ -47,8 +40,6 @@ public class ExerciseLogService(
     /// <summary>
     /// Deletes an exercise log entry.
     /// </summary>
-    /// <param name="log">The exercise log to delete.</param>
-    /// <returns>The number of rows affected.</returns>
     public async Task<int> DeleteExerciseLog(ExerciseLog log)
     {
         _logger.LogInformation("Deleting exercise log: {Id}", log.Id);
@@ -56,18 +47,14 @@ public class ExerciseLogService(
     }
 
     /// <summary>
-    /// Gets the list of exercise logs for a selected date, pre-populated with exercises from the routine for that day.
-    /// Also fetches historical data from the previous week to provide context.
+    /// Builds the day's sheet: one row per planned exercise, carrying anything already logged
+    /// for that date and a description of the last time each was done.
     /// </summary>
-    /// <param name="selectedDate">The date chosen by the user.</param>
-    /// <returns>A list of exercise logs representing the daily plan and any existing data.</returns>
     public async Task<List<ExerciseLog>> GetDailyExerciseLogsAsync(DateTime selectedDate)
     {
-        // 1. Get the routine definition for this day of the week
         List<PlannedExercise> routine =
             await _plannedExerciseRepository.GetPlannedExercisesForDayAsync(selectedDate.DayOfWeek);
 
-        // 2. Get any existing logs already saved for this specific date
         List<ExerciseLog> existingLogsForDay = await _repository.GetExerciseLogForDateAsync(
             selectedDate.Date
         );
@@ -76,7 +63,7 @@ public class ExerciseLogService(
 
         foreach (PlannedExercise planned in routine)
         {
-            // 3. Get the MOST RECENT log before today (regardless of how many days ago)
+            // The most recent log before this date, however long ago it was.
             ExerciseLog? previousLog = await _repository.GetLatestLogForExerciseAsync(
                 planned.ExerciseName,
                 selectedDate.Date.AddDays(-1) // Ensures we don't pick up "today" as "previous"
@@ -98,8 +85,6 @@ public class ExerciseLogService(
     /// <summary>
     /// Saves multiple exercise log entries, skipping those with no recorded activity.
     /// </summary>
-    /// <param name="logs">Collection of exercise logs to save.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task SaveExerciseLogsAsync(IEnumerable<ExerciseLog> logs)
     {
         foreach (ExerciseLog log in logs.Where(l => l.HasRecordedActivity))

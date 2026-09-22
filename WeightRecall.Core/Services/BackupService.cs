@@ -7,10 +7,8 @@ namespace WeightRecall.Services;
 /// Moves data between the database and a <see cref="BackupData"/> payload.
 /// </summary>
 /// <remarks>
-/// This deals only in whole-database contents; turning a payload into a file, and picking which
-/// file, belongs to the caller.
+/// Deals only in whole-database contents; writing a payload to a file belongs to the caller.
 /// </remarks>
-/// <param name="context">The database context for data access.</param>
 public class BackupService(DatabaseContext context)
 {
     private readonly DatabaseContext _context = context;
@@ -59,10 +57,8 @@ public class BackupService(DatabaseContext context)
     /// Replaces everything currently stored with the contents of a backup payload.
     /// </summary>
     /// <remarks>
-    /// Destructive: the existing rows are deleted before the new ones are written.
-    /// TODO: the delete and the inserts are not one unit of work, so a failure partway through
-    /// leaves the user with neither their old data nor the restored data. And an empty payload
-    /// is accepted as an instruction to delete everything; see <see cref="BackupData.IsEmpty"/>.
+    /// Destructive, and not one unit of work: existing rows are deleted before the new ones are
+    /// written, and an empty payload is accepted as an instruction to delete everything.
     /// </remarks>
     public async Task ApplyAsync(BackupData data)
     {
