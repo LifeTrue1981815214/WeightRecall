@@ -4,17 +4,24 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using WeightRecall.Models;
 using WeightRecall.Services;
-using WeightRecall.Views;
 
 namespace WeightRecall.ViewModels;
 
 /// <summary>
 /// ViewModel for the main page, managing daily exercise logs and weekly navigation.
 /// </summary>
+/// <remarks>
+/// Prompts, navigation and the current date all arrive through injected services rather than
+/// being reached for directly, so the rules here -- which week can be shown, when a deletion
+/// needs confirming, when a command is allowed to run -- can be exercised without a running app.
+/// </remarks>
 public partial class MainViewModel : ObservableObject
 {
     private readonly ExerciseLogService _exerciseLogService;
     private readonly DateService _dateService;
+    private readonly INavigationService _navigationService;
+    private readonly IDialogService _dialogService;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<MainViewModel> _logger;
 
     /// <summary>
@@ -32,12 +39,12 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotToday))]
-    private DateTime _selectedDate = DateTime.Today;
+    private DateTime _selectedDate;
 
     /// <summary>
     /// True when the selected date is not today, used to show the "Today" button.
     /// </summary>
-    public bool IsNotToday => SelectedDate.Date != DateTime.Today;
+    public bool IsNotToday => SelectedDate.Date != Today;
 
     /// <summary>
     /// Gets or sets the Monday of the current week being displayed.
@@ -52,23 +59,43 @@ public partial class MainViewModel : ObservableObject
     private bool _isBusy;
 
     /// <summary>
+    /// The current date, read through the injected clock so a test can pin it.
+    /// </summary>
+    private DateTime Today => _timeProvider.GetLocalNow().Date;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="MainViewModel"/> class.
     /// </summary>
+    /// <remarks>
+    /// Only sets up the week strip. Loading the day's exercises is left to the view's appearing
+    /// event, which asks for it anyway -- doing it here as well started a second load that the
+    /// <see cref="IsBusy"/> guard then discarded, and which nothing could await.
+    /// </remarks>
     /// <param name="exerciseLogService">Service for exercise logs.</param>
     /// <param name="dateService">Service for date utilities.</param>
+    /// <param name="navigationService">Service for moving between screens.</param>
+    /// <param name="dialogService">Service for prompting the user.</param>
+    /// <param name="timeProvider">Clock used to resolve today's date.</param>
     /// <param name="logger">Logger instance.</param>
     public MainViewModel(
         ExerciseLogService exerciseLogService,
         DateService dateService,
+        INavigationService navigationService,
+        IDialogService dialogService,
+        TimeProvider timeProvider,
         ILogger<MainViewModel> logger
     )
     {
         _exerciseLogService = exerciseLogService;
         _dateService = dateService;
+        _navigationService = navigationService;
+        _dialogService = dialogService;
+        _timeProvider = timeProvider;
         _logger = logger;
-        _currentWeekMonday = _dateService.GetMonday(DateTime.Today);
+
+        _selectedDate = Today;
+        _currentWeekMonday = _dateService.GetMonday(Today);
         GenerateWeek();
-        _ = LoadTodayExercises();
     }
 
     /// <summary>
@@ -101,7 +128,7 @@ public partial class MainViewModel : ObservableObject
     public void NextWeek()
     {
         DateTime nextMonday = CurrentWeekMonday.AddDays(7);
-        if (nextMonday <= _dateService.GetMonday(DateTime.Today))
+        if (nextMonday <= _dateService.GetMonday(Today))
         {
             CurrentWeekMonday = nextMonday;
             GenerateWeek();
@@ -128,14 +155,16 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task ViewProgress(ExerciseLog log)
     {
-        await Shell.Current.GoToAsync(
-            $"{nameof(ProgressPage)}?ExerciseName={Uri.EscapeDataString(log.ExerciseName)}"
-        );
+        await _navigationService.GoToExerciseProgressAsync(log.ExerciseName);
     }
 
     /// <summary>
     /// Command to delete an exercise log entry.
     /// </summary>
+    /// <remarks>
+    /// A row that was never saved has nothing to delete, so it is dropped from the list without
+    /// asking; only a stored row is worth a confirmation.
+    /// </remarks>
     /// <param name="log">The log entry to delete.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     [RelayCommand]
@@ -143,7 +172,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (log.Id != 0)
         {
-            bool confirm = await Shell.Current.DisplayAlertAsync(
+            bool confirm = await _dialogService.ConfirmAsync(
                 "Delete",
                 $"Are you sure you want to delete {log.ExerciseName} for this day?",
                 "Yes",
@@ -167,9 +196,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task GoToToday()
     {
-        CurrentWeekMonday = _dateService.GetMonday(DateTime.Today);
+        CurrentWeekMonday = _dateService.GetMonday(Today);
         GenerateWeek();
-        await SelectDate(DateTime.Today);
+        await SelectDate(Today);
     }
 
     [RelayCommand]
@@ -184,11 +213,7 @@ public partial class MainViewModel : ObservableObject
         {
             IsBusy = true;
             await _exerciseLogService.SaveExerciseLogsAsync(TodayExercises);
-            await Shell.Current.DisplayAlertAsync(
-                "Saved",
-                "Recent workout progress has been saved.",
-                "OK"
-            );
+            await _dialogService.AlertAsync("Saved", "Recent workout progress has been saved.");
         }
         finally
         {

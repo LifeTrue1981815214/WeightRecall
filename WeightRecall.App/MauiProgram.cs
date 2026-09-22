@@ -86,6 +86,10 @@ public static class MauiProgram
         );
         builder.Services.AddSingleton<DateService>();
         builder.Services.AddSingleton<BackupService>();
+        // The shell-backed half of the view models' world: prompting and navigating. Registered
+        // by interface only, so nothing outside this file can reach the shell through them.
+        builder.Services.AddSingleton<IDialogService, ShellDialogService>();
+        builder.Services.AddSingleton<INavigationService, ShellNavigationService>();
 
         // Register Shell and Settings
         builder.Services.AddSingleton<SettingsPage>();
