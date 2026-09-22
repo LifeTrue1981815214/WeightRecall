@@ -85,6 +85,7 @@ public static class MauiProgram
             sp.GetRequiredService<NotificationService>()
         );
         builder.Services.AddSingleton<DateService>();
+        builder.Services.AddSingleton<BackupService>();
 
         // Register Shell and Settings
         builder.Services.AddSingleton<SettingsPage>();

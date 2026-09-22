@@ -1,7 +1,3 @@
-using System.Globalization;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Plugin.LocalNotification;
 using WeightRecall.Data;
 using WeightRecall.Models;
@@ -9,66 +5,27 @@ using WeightRecall.Services;
 
 namespace WeightRecall.Views;
 
-internal sealed class ExportData
-{
-    public int Version { get; set; } = 1;
-    public DateTime ExportedAt { get; set; }
-
-    // "RoutineItems" is the on-disk name from before the rename to PlannedExercise, and is
-    // pinned on purpose: it is the wire format of every backup users have already exported.
-    // Changing it would not fail loudly -- those backups would simply restore with no routine.
-    // The TXT format pins the same name; see ExportAsTxtAsync and ParseTxt.
-    [JsonPropertyName("RoutineItems")]
-    public List<PlannedExerciseExport> PlannedExercises { get; set; } = [];
-
-    // Pinned for the same reason as PlannedExercises above: "WorkoutLogs" is the name in every
-    // backup users have already exported, and the TXT section header matches it.
-    // TODO: unpin when the backup format gets a version bump that can migrate old files.
-    [JsonPropertyName("WorkoutLogs")]
-    public List<ExerciseLogExport> ExerciseLogs { get; set; } = [];
-}
-
-internal sealed class PlannedExerciseExport
-{
-    public string ExerciseName { get; set; } = string.Empty;
-    public DayOfWeek DayOfWeek { get; set; }
-
-    // Pinned for the same reason as ExportData.PlannedExercises: "Order" is the name in every
-    // backup users have already exported, and the TXT column header below matches it.
-    // TODO: unpin when the backup format gets a version bump that can migrate old files.
-    [JsonPropertyName("Order")]
-    public int Position { get; set; }
-}
-
-internal sealed class ExerciseLogExport
-{
-    public DateTime Date { get; set; }
-    public string ExerciseName { get; set; } = string.Empty;
-    public int Sets { get; set; }
-    public int Reps { get; set; }
-    public double Weight { get; set; }
-}
-
 public partial class SettingsPage : ContentPage
 {
     private readonly NotificationService _notificationService;
     private readonly DatabaseContext _databaseContext;
+    private readonly BackupService _backupService;
+
     private static readonly string DbPath = Path.Combine(
         FileSystem.AppDataDirectory,
         "WeightRecall.db3"
     );
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() },
-    };
-
-    public SettingsPage(NotificationService notificationService, DatabaseContext databaseContext)
+    public SettingsPage(
+        NotificationService notificationService,
+        DatabaseContext databaseContext,
+        BackupService backupService
+    )
     {
         InitializeComponent();
         _notificationService = notificationService;
         _databaseContext = databaseContext;
+        _backupService = backupService;
 
         // Set initial value before subscribing so it doesn't trigger the handler
         NotificationSwitch.IsToggled = Preferences.Default.Get("NotificationsEnabled", true);
@@ -152,8 +109,8 @@ public partial class SettingsPage : ContentPage
             string? path = choice switch
             {
                 "Database (.db3)" => GetDb3ExportPath(),
-                "JSON (.json)" => await ExportAsJsonAsync(),
-                "Text (.txt)" => await ExportAsTxtAsync(),
+                "JSON (.json)" => await WriteBackupFileAsync("json", BackupJsonFormat.Write),
+                "Text (.txt)" => await WriteBackupFileAsync("txt", BackupTextFormat.Write),
                 _ => null,
             };
 
@@ -191,77 +148,20 @@ public partial class SettingsPage : ContentPage
         return DbPath;
     }
 
-    private async Task<string> ExportAsJsonAsync()
+    /// <summary>
+    /// Writes the current data to a temporary file in the given format, and returns its path.
+    /// </summary>
+    /// <param name="extension">File extension to use, without the dot.</param>
+    /// <param name="render">Turns the backup into the text that gets written.</param>
+    private async Task<string> WriteBackupFileAsync(
+        string extension,
+        Func<BackupData, string> render
+    )
     {
-        ExportData data = await BuildExportDataAsync();
-        string json = JsonSerializer.Serialize(data, JsonOptions);
-        string path = GetTempExportPath("json");
-        await File.WriteAllTextAsync(path, json);
+        BackupData data = await _backupService.BuildAsync();
+        string path = GetTempExportPath(extension);
+        await File.WriteAllTextAsync(path, render(data));
         return path;
-    }
-
-    private async Task<string> ExportAsTxtAsync()
-    {
-        ExportData data = await BuildExportDataAsync();
-        StringBuilder sb = new();
-
-        // Section header pinned for the same reason as ExportData.PlannedExercises' JSON key.
-        sb.AppendLine("[RoutineItems]");
-        sb.AppendLine("ExerciseName,DayOfWeek,Order");
-        foreach (PlannedExerciseExport e in data.PlannedExercises)
-        {
-            sb.AppendLine($"{CsvEscape(e.ExerciseName)},{e.DayOfWeek},{e.Position}");
-        }
-
-        sb.AppendLine();
-        sb.AppendLine("[WorkoutLogs]");
-        sb.AppendLine("Date,ExerciseName,Sets,Reps,Weight");
-        foreach (ExerciseLogExport w in data.ExerciseLogs)
-        {
-            sb.AppendLine(
-                FormattableString.Invariant(
-                    $"{w.Date:O},{CsvEscape(w.ExerciseName)},{w.Sets},{w.Reps},{w.Weight}"
-                )
-            );
-        }
-
-        string path = GetTempExportPath("txt");
-        await File.WriteAllTextAsync(path, sb.ToString());
-        return path;
-    }
-
-    private async Task<ExportData> BuildExportDataAsync()
-    {
-        await _databaseContext.InitializeAsync();
-        List<PlannedExercise> plannedExercises = await _databaseContext
-            .Connection.Table<PlannedExercise>()
-            .ToListAsync();
-        List<ExerciseLog> exerciseLogs = await _databaseContext
-            .Connection.Table<ExerciseLog>()
-            .ToListAsync();
-
-        return new ExportData
-        {
-            ExportedAt = DateTime.UtcNow,
-            PlannedExercises = plannedExercises
-                .Select(e => new PlannedExerciseExport
-                {
-                    ExerciseName = e.ExerciseName,
-                    DayOfWeek = e.DayOfWeek,
-                    Position = e.Position,
-                })
-                .ToList(),
-            ExerciseLogs = exerciseLogs
-                .Select(w => new ExerciseLogExport
-                {
-                    Date = w.Date,
-                    ExerciseName = w.ExerciseName,
-                    Sets = w.Sets,
-                    Reps = w.Reps,
-                    Weight = w.Weight,
-                })
-                .ToList(),
-        };
     }
 
     // ── Import ───────────────────────────────────────────────────────────────
@@ -299,10 +199,10 @@ public partial class SettingsPage : ContentPage
                     await ImportFromDb3Async(result);
                     break;
                 case ".json":
-                    await ImportFromJsonAsync(result);
+                    await ImportTextFileAsync(result, BackupJsonFormat.Read);
                     break;
                 case ".txt":
-                    await ImportFromTxtAsync(result);
+                    await ImportTextFileAsync(result, BackupTextFormat.Parse);
                     break;
                 default:
                     await DisplayAlertAsync(
@@ -327,6 +227,26 @@ public partial class SettingsPage : ContentPage
         }
     }
 
+    /// <summary>
+    /// Reads a picked text file, parses it with the given format, and restores it.
+    /// </summary>
+    /// <param name="result">The file the user picked.</param>
+    /// <param name="parse">Turns the file's text into a backup payload.</param>
+    private async Task ImportTextFileAsync(FileResult result, Func<string, BackupData?> parse)
+    {
+        string content;
+        using (Stream stream = await result.OpenReadAsync())
+        using (StreamReader reader = new(stream))
+        {
+            content = await reader.ReadToEndAsync();
+        }
+
+        BackupData data =
+            parse(content) ?? throw new InvalidDataException("Invalid or empty backup file.");
+
+        await _backupService.ApplyAsync(data);
+    }
+
     private async Task ImportFromDb3Async(FileResult result)
     {
         string tempPath = Path.Combine(FileSystem.CacheDirectory, "import_temp.db3");
@@ -340,166 +260,6 @@ public partial class SettingsPage : ContentPage
         await _databaseContext.Connection.CloseAsync();
         File.Copy(tempPath, DbPath, overwrite: true);
         File.Delete(tempPath);
-    }
-
-    private async Task ImportFromJsonAsync(FileResult result)
-    {
-        ExportData? data;
-        using (Stream stream = await result.OpenReadAsync())
-        {
-            data = await JsonSerializer.DeserializeAsync<ExportData>(stream, JsonOptions);
-        }
-
-        if (data is null)
-        {
-            throw new InvalidDataException("Invalid or empty JSON file.");
-        }
-
-        await ApplyImportDataAsync(data);
-    }
-
-    private async Task ImportFromTxtAsync(FileResult result)
-    {
-        string content;
-        using (Stream stream = await result.OpenReadAsync())
-        using (StreamReader reader = new(stream))
-        {
-            content = await reader.ReadToEndAsync();
-        }
-
-        ExportData data = ParseTxt(content);
-        await ApplyImportDataAsync(data);
-    }
-
-    private async Task ApplyImportDataAsync(ExportData data)
-    {
-        await _databaseContext.InitializeAsync();
-        await _databaseContext.Connection.DeleteAllAsync<ExerciseLog>();
-        await _databaseContext.Connection.DeleteAllAsync<PlannedExercise>();
-
-        await _databaseContext.Connection.InsertAllAsync(
-            data.PlannedExercises.Select(e => new PlannedExercise
-            {
-                ExerciseName = e.ExerciseName,
-                DayOfWeek = e.DayOfWeek,
-                Position = e.Position,
-            })
-        );
-
-        await _databaseContext.Connection.InsertAllAsync(
-            data.ExerciseLogs.Select(w => new ExerciseLog
-            {
-                Date = w.Date,
-                ExerciseName = w.ExerciseName,
-                Sets = w.Sets,
-                Reps = w.Reps,
-                Weight = w.Weight,
-            })
-        );
-    }
-
-    // ── TXT parsing ──────────────────────────────────────────────────────────
-
-    private static ExportData ParseTxt(string content)
-    {
-        ExportData data = new();
-        string? section = null;
-        bool headerSkipped = false;
-
-        foreach (string rawLine in content.Split('\n'))
-        {
-            string line = rawLine.Trim();
-            if (string.IsNullOrEmpty(line))
-            {
-                continue;
-            }
-
-            // Reads the pinned pre-rename section name; see ExportData.PlannedExercises.
-            if (line == "[RoutineItems]")
-            {
-                section = "RoutineItems";
-                headerSkipped = false;
-                continue;
-            }
-            if (line == "[WorkoutLogs]")
-            {
-                section = "WorkoutLogs";
-                headerSkipped = false;
-                continue;
-            }
-
-            if (!headerSkipped)
-            {
-                headerSkipped = true;
-                continue;
-            }
-
-            string[] parts = SplitCsvLine(line);
-
-            if (section == "RoutineItems" && parts.Length >= 3)
-            {
-                data.PlannedExercises.Add(
-                    new PlannedExerciseExport
-                    {
-                        ExerciseName = parts[0],
-                        DayOfWeek = Enum.Parse<DayOfWeek>(parts[1]),
-                        Position = int.Parse(parts[2], CultureInfo.InvariantCulture),
-                    }
-                );
-            }
-            else if (section == "WorkoutLogs" && parts.Length >= 5)
-            {
-                data.ExerciseLogs.Add(
-                    new ExerciseLogExport
-                    {
-                        Date = DateTime.Parse(parts[0], CultureInfo.InvariantCulture),
-                        ExerciseName = parts[1],
-                        Sets = int.Parse(parts[2], CultureInfo.InvariantCulture),
-                        Reps = int.Parse(parts[3], CultureInfo.InvariantCulture),
-                        Weight = double.Parse(parts[4], CultureInfo.InvariantCulture),
-                    }
-                );
-            }
-        }
-
-        return data;
-    }
-
-    private static string[] SplitCsvLine(string line)
-    {
-        List<string> result = [];
-        bool inQuotes = false;
-        StringBuilder current = new();
-
-        foreach (char c in line)
-        {
-            if (c == '"')
-            {
-                inQuotes = !inQuotes;
-            }
-            else if (c == ',' && !inQuotes)
-            {
-                result.Add(current.ToString());
-                current.Clear();
-            }
-            else
-            {
-                current.Append(c);
-            }
-        }
-
-        result.Add(current.ToString());
-        return [.. result];
-    }
-
-    private static string CsvEscape(string value)
-    {
-        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
-        {
-            return $"\"{value.Replace("\"", "\"\"")}\"";
-        }
-
-        return value;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
