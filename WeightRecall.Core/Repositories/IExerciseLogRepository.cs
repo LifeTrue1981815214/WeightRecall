@@ -1,6 +1,6 @@
 using WeightRecall.Models;
 
-namespace WeightRecall.Repository;
+namespace WeightRecall.Repositories;
 
 /// <summary>
 /// Abstraction over persistence of exercise logs, so callers can be tested

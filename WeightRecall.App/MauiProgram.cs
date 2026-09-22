@@ -3,8 +3,9 @@ using Microsoft.Extensions.Logging;
 using Plugin.LocalNotification;
 using Serilog;
 using Serilog.Events;
+using WeightRecall.Abstractions;
 using WeightRecall.Data;
-using WeightRecall.Repository;
+using WeightRecall.Repositories;
 using WeightRecall.Services;
 using WeightRecall.ViewModels;
 using WeightRecall.Views;
@@ -84,7 +85,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<IWorkoutNotificationService>(sp =>
             sp.GetRequiredService<NotificationService>()
         );
-        builder.Services.AddSingleton<DateService>();
         builder.Services.AddSingleton<BackupService>();
         // The shell-backed half of the view models' world: prompting and navigating. Registered
         // by interface only, so nothing outside this file can reach the shell through them.

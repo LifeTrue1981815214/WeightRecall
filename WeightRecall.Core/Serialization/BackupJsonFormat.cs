@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using WeightRecall.Models;
 
-namespace WeightRecall.Services;
+namespace WeightRecall.Serialization;
 
 /// <summary>
 /// Reads and writes the JSON backup format.

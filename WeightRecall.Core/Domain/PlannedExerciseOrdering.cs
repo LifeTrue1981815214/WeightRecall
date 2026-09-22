@@ -1,6 +1,6 @@
 using WeightRecall.Models;
 
-namespace WeightRecall.Services;
+namespace WeightRecall.Domain;
 
 /// <summary>
 /// Ordering rules for planned exercises, kept free of database and notification

@@ -1,6 +1,6 @@
 using WeightRecall.Models;
 
-namespace WeightRecall.Services;
+namespace WeightRecall.Domain;
 
 /// <summary>
 /// Aggregation rules for turning raw exercise logs into chart points, kept free of database and

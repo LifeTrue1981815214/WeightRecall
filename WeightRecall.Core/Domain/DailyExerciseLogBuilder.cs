@@ -1,6 +1,6 @@
 using WeightRecall.Models;
 
-namespace WeightRecall.Services;
+namespace WeightRecall.Domain;
 
 /// <summary>
 /// Rules for presenting one planned exercise as a row on the day's log sheet, kept free of

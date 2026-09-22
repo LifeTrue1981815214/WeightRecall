@@ -1,3 +1,4 @@
+using WeightRecall.Abstractions;
 using WeightRecall.Views;
 
 namespace WeightRecall.Services;

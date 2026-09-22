@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using WeightRecall.Models;
 
-namespace WeightRecall.Services;
+namespace WeightRecall.Serialization;
 
 /// <summary>
 /// Reads and writes the plain-text backup format: two named sections, each a CSV table.

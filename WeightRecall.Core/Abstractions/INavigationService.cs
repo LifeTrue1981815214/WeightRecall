@@ -1,4 +1,4 @@
-namespace WeightRecall.Services;
+namespace WeightRecall.Abstractions;
 
 /// <summary>
 /// Moves the user between screens.

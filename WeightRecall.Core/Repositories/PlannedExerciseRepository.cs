@@ -3,7 +3,7 @@ using SQLite;
 using WeightRecall.Data;
 using WeightRecall.Models;
 
-namespace WeightRecall.Repository;
+namespace WeightRecall.Repositories;
 
 /// <summary>
 /// SQLite-backed implementation of <see cref="IPlannedExerciseRepository"/>.

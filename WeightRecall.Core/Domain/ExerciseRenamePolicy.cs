@@ -1,6 +1,6 @@
 using WeightRecall.Models;
 
-namespace WeightRecall.Services;
+namespace WeightRecall.Domain;
 
 /// <summary>
 /// Rules deciding whether a planned exercise was renamed and whether its logged history should

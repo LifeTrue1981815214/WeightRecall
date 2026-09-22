@@ -1,6 +1,7 @@
 using Plugin.LocalNotification;
 using WeightRecall.Data;
 using WeightRecall.Models;
+using WeightRecall.Serialization;
 using WeightRecall.Services;
 
 namespace WeightRecall.Views;

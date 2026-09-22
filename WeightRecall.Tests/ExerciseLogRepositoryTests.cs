@@ -7,7 +7,7 @@
 using Microsoft.Extensions.Logging.Abstractions; // NullLogger — a no-op logger so we don't need a real one in tests
 using WeightRecall.Data; // DatabaseContext
 using WeightRecall.Models; // ExerciseLog
-using WeightRecall.Repository; // ExerciseLogRepository
+using WeightRecall.Repositories; // ExerciseLogRepository
 
 namespace WeightRecall.Tests;
 

@@ -1,4 +1,4 @@
-namespace WeightRecall.Services;
+namespace WeightRecall.Abstractions;
 
 /// <summary>
 /// Abstraction for scheduling workout reminder notifications.

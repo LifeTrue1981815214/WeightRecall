@@ -1,4 +1,4 @@
-namespace WeightRecall.Services;
+namespace WeightRecall.Abstractions;
 
 /// <summary>
 /// Shows the simple prompts a view model needs to ask the user something.

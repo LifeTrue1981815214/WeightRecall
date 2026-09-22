@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using WeightRecall.Abstractions;
+using WeightRecall.Domain;
 using WeightRecall.Models;
 using WeightRecall.Services;
 
@@ -18,7 +20,6 @@ namespace WeightRecall.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly ExerciseLogService _exerciseLogService;
-    private readonly DateService _dateService;
     private readonly INavigationService _navigationService;
     private readonly IDialogService _dialogService;
     private readonly TimeProvider _timeProvider;
@@ -72,14 +73,12 @@ public partial class MainViewModel : ObservableObject
     /// <see cref="IsBusy"/> guard then discarded, and which nothing could await.
     /// </remarks>
     /// <param name="exerciseLogService">Service for exercise logs.</param>
-    /// <param name="dateService">Service for date utilities.</param>
     /// <param name="navigationService">Service for moving between screens.</param>
     /// <param name="dialogService">Service for prompting the user.</param>
     /// <param name="timeProvider">Clock used to resolve today's date.</param>
     /// <param name="logger">Logger instance.</param>
     public MainViewModel(
         ExerciseLogService exerciseLogService,
-        DateService dateService,
         INavigationService navigationService,
         IDialogService dialogService,
         TimeProvider timeProvider,
@@ -87,14 +86,13 @@ public partial class MainViewModel : ObservableObject
     )
     {
         _exerciseLogService = exerciseLogService;
-        _dateService = dateService;
         _navigationService = navigationService;
         _dialogService = dialogService;
         _timeProvider = timeProvider;
         _logger = logger;
 
         _selectedDate = Today;
-        _currentWeekMonday = _dateService.GetMonday(Today);
+        _currentWeekMonday = WeekCalendar.GetMonday(Today);
         GenerateWeek();
     }
 
@@ -104,7 +102,7 @@ public partial class MainViewModel : ObservableObject
     private void GenerateWeek()
     {
         WeekDays.Clear();
-        List<DateTime> days = _dateService.GetDaysOfWeek(CurrentWeekMonday);
+        List<DateTime> days = WeekCalendar.GetDaysOfWeek(CurrentWeekMonday);
         foreach (DateTime day in days)
         {
             WeekDays.Add(day);
@@ -128,7 +126,7 @@ public partial class MainViewModel : ObservableObject
     public void NextWeek()
     {
         DateTime nextMonday = CurrentWeekMonday.AddDays(7);
-        if (nextMonday <= _dateService.GetMonday(Today))
+        if (nextMonday <= WeekCalendar.GetMonday(Today))
         {
             CurrentWeekMonday = nextMonday;
             GenerateWeek();
@@ -196,7 +194,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task GoToToday()
     {
-        CurrentWeekMonday = _dateService.GetMonday(Today);
+        CurrentWeekMonday = WeekCalendar.GetMonday(Today);
         GenerateWeek();
         await SelectDate(Today);
     }

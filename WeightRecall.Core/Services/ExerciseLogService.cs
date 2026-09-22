@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
+using WeightRecall.Domain;
 using WeightRecall.Models;
-using WeightRecall.Repository;
+using WeightRecall.Repositories;
 
 namespace WeightRecall.Services;
 

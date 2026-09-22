@@ -1,3 +1,4 @@
+using WeightRecall.Domain;
 using WeightRecall.Services;
 
 namespace WeightRecall.Tests;

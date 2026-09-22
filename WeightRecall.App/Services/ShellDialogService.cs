@@ -1,3 +1,5 @@
+using WeightRecall.Abstractions;
+
 namespace WeightRecall.Services;
 
 /// <summary>

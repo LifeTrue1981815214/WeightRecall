@@ -1,4 +1,4 @@
-namespace WeightRecall.Services;
+namespace WeightRecall.Domain;
 
 /// <summary>
 /// Works out when a weekly reminder should next fire.
