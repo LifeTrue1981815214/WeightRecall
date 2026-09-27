@@ -148,7 +148,10 @@ public partial class ExercisesViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load planned exercises for {Day}", SelectedDay);
-            await _dialogService.AlertAsync("Error", $"Failed to load routine: {ex.Message}");
+            await _dialogService.ShowBriefMessageAsync(
+                "Could not load your routine.",
+                isError: true
+            );
         }
     }
 

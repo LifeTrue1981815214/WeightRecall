@@ -239,7 +239,11 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading today's exercises");
+            _logger.LogError(ex, "Failed to load exercises for {SelectedDate}", SelectedDate);
+            await _dialogService.ShowBriefMessageAsync(
+                "Could not load this day's exercises.",
+                isError: true
+            );
         }
         finally
         {
