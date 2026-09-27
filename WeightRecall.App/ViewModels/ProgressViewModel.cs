@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microcharts;
 using Microsoft.Extensions.Logging;
+using WeightRecall.Abstractions;
 using WeightRecall.Models;
 using WeightRecall.Services;
 
@@ -11,11 +12,13 @@ namespace WeightRecall.ViewModels;
 public partial class ProgressViewModel(
     ExerciseProgressService exerciseProgressService,
     IChartService chartService,
+    IDialogService dialogService,
     ILogger<ProgressViewModel> logger
 ) : ObservableObject
 {
     private readonly ExerciseProgressService _exerciseProgressService = exerciseProgressService;
-    private readonly IChartService _chartService = chartService; // New Service
+    private readonly IChartService _chartService = chartService;
+    private readonly IDialogService _dialogService = dialogService;
     private readonly ILogger<ProgressViewModel> _logger = logger;
 
     [ObservableProperty]
@@ -27,9 +30,18 @@ public partial class ProgressViewModel(
     private Chart? _progressChart;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsHistoryUnavailable))]
     private bool _isBusy;
 
     public bool IsHistoryAvailable => ProgressChart != null;
+
+    /// <summary>
+    /// True once loading has finished without producing a chart.
+    /// </summary>
+    /// <remarks>
+    /// Depends on BOTH properties, so both must announce changes. While only ProgressChart did,
+    /// the empty-state message showed underneath the spinner for the whole of every load.
+    /// </remarks>
     public bool IsHistoryUnavailable => ProgressChart == null && !IsBusy;
 
     partial void OnExerciseNameChanged(string value)
@@ -65,7 +77,11 @@ public partial class ProgressViewModel(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load progress");
+            _logger.LogError(ex, "Failed to load progress for {Exercise}", ExerciseName);
+            await _dialogService.ShowBriefMessageAsync(
+                "Could not load the progress chart.",
+                isError: true
+            );
         }
         finally
         {
