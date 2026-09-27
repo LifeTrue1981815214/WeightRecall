@@ -72,6 +72,29 @@ Other known defects
     per planned exercise. Needs a new repository query, so it is a behaviour change.
 
 
+== REFACTOR / TESTABILITY BACKLOG ==
+
+NotificationService  (WeightRecall.App/Services)
+  The gating chain -- notifications preference, system-enabled, exact-alarm permission, then the
+  per-day loop -- is decision logic wrapped in Android calls, so none of it is reachable from a
+  test. Extracting the decisions into Core would make them testable; the platform calls stay put.
+  Also: RequestNotificationPermission is static, which is why nothing can substitute it.
+
+ProgressViewModel  (WeightRecall.App/ViewModels)
+  Still in App, so still untestable, unlike the other two view models. The blockers are a
+  Microcharts Chart held as a bound property, Application.Current.RequestedTheme, and the MAUI
+  QueryProperty attribute. Moving it means abstracting the chart type, which is why it was left.
+  The IsHistoryAvailable / IsHistoryUnavailable pair is exactly the sort of thing a test pins --
+  they were wrong until the fix for the stale empty-state, and nothing would have caught it.
+
+SettingsPage.xaml.cs  (303 lines)
+  The largest file in the app and the only one with no coverage at all. What is left in it after
+  the format extraction is mostly genuine platform work (Share, FilePicker, Preferences,
+  RestartApp), but the choice logic -- action-sheet label to format, file extension to importer --
+  is still decision code sitting in UI handlers. Best done together with the backup work above,
+  since they touch the same paths.
+
+
 == REPOSITORY LAYER (against a real temp SQLite DB) ==
 
 ExerciseLogRepository

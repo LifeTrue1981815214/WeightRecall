@@ -18,12 +18,42 @@ public class NotificationService(
     private readonly ILogger<NotificationService> _logger = logger;
 
     /// <summary>
-    /// Requests POST_NOTIFICATIONS permission and, on Android 12+, SCHEDULE_EXACT_ALARM.
-    /// Opens system settings if the exact alarm permission is missing.
+    /// Preferences key holding whether the user wants reminders at all.
     /// </summary>
-    public static async Task<bool> RequestNotificationPermission()
+    public const string NotificationsEnabledKey = "NotificationsEnabled";
+
+    /// <summary>
+    /// Preferences key recording that the one-time reminder setup has already run.
+    /// </summary>
+    public const string RemindersRequestedKey = "RemindersRequested";
+
+    /// <summary>
+    /// Asks for POST_NOTIFICATIONS if it has not been granted yet.
+    /// </summary>
+    /// <remarks>
+    /// Shows at most a system dialog, and never sends the user to another screen, so it is safe
+    /// to call on startup.
+    /// </remarks>
+    public static Task<bool> RequestNotificationPermission()
     {
-        if (!await LocalNotificationCenter.Current.RequestNotificationPermission())
+        return LocalNotificationCenter.Current.RequestNotificationPermission();
+    }
+
+    /// <summary>
+    /// Asks for everything a reminder needs, sending the user to the system's exact-alarm screen
+    /// if that permission is missing.
+    /// </summary>
+    /// <remarks>
+    /// Call this only where the user has asked for reminders, or once on first run. It can
+    /// navigate out of the app, so calling it on every launch traps anyone who has not granted
+    /// exact alarms: they are thrown into system settings each time, with no way to reach the
+    /// app. The exact-alarm screen is only opened once notifications have been allowed, so
+    /// declining the first prompt ends the flow there.
+    /// </remarks>
+    /// <returns><c>true</c> when reminders can actually be scheduled.</returns>
+    public static async Task<bool> RequestReminderPermissions()
+    {
+        if (!await RequestNotificationPermission())
         {
             return false;
         }
@@ -49,7 +79,7 @@ public class NotificationService(
         {
             _ = LocalNotificationCenter.Current.CancelAll();
 
-            if (!Preferences.Default.Get("NotificationsEnabled", true))
+            if (!Preferences.Default.Get(NotificationsEnabledKey, true))
             {
                 return;
             }

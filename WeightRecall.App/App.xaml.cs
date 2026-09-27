@@ -46,16 +46,29 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Triggered when the application starts.
-    /// Requests notification permissions and schedules daily reminders if enabled.
+    /// Triggered when the application starts. Sets reminders up on first run, then schedules them.
     /// </summary>
+    /// <remarks>
+    /// The setup asks for notifications and, once allowed, sends the user to the exact-alarm
+    /// screen if that is still needed. It runs ONCE, and the flag is written before the request
+    /// rather than after: repeating it every launch would eject anyone who has not granted exact
+    /// alarms straight back into system settings, with no way to reach the app. After first run
+    /// the only way to be asked again is the settings toggle.
+    /// </remarks>
     protected override async void OnStart()
     {
         base.OnStart();
         try
         {
             _logger.LogInformation("App starting...");
-            _ = await NotificationService.RequestNotificationPermission();
+
+            if (!Preferences.Default.Get(NotificationService.RemindersRequestedKey, false))
+            {
+                Preferences.Default.Set(NotificationService.RemindersRequestedKey, true);
+                _logger.LogInformation("First run: asking for reminder permissions");
+                _ = await NotificationService.RequestReminderPermissions();
+            }
+
             await _notificationService.ScheduleDailyNotifications();
         }
         catch (Exception ex)

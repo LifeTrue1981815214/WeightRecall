@@ -29,7 +29,10 @@ public partial class SettingsPage : ContentPage
         _backupService = backupService;
 
         // Set initial value before subscribing so it doesn't trigger the handler
-        NotificationSwitch.IsToggled = Preferences.Default.Get("NotificationsEnabled", true);
+        NotificationSwitch.IsToggled = Preferences.Default.Get(
+            NotificationService.NotificationsEnabledKey,
+            true
+        );
         NotificationSwitch.Toggled += OnNotificationToggled;
     }
 
@@ -39,14 +42,17 @@ public partial class SettingsPage : ContentPage
 
         NotificationSwitch.Toggled -= OnNotificationToggled;
 
-        bool prefEnabled = Preferences.Default.Get("NotificationsEnabled", true);
+        bool prefEnabled = Preferences.Default.Get(
+            NotificationService.NotificationsEnabledKey,
+            true
+        );
         bool systemEnabled =
             !prefEnabled || await LocalNotificationCenter.Current.AreNotificationsEnabled();
         NotificationSwitch.IsToggled = prefEnabled && systemEnabled;
 
         if (prefEnabled && !systemEnabled)
         {
-            Preferences.Default.Set("NotificationsEnabled", false);
+            Preferences.Default.Set(NotificationService.NotificationsEnabledKey, false);
         }
 
         NotificationSwitch.Toggled += OnNotificationToggled;
@@ -61,11 +67,11 @@ public partial class SettingsPage : ContentPage
 
     private async void OnNotificationToggled(object? sender, ToggledEventArgs e)
     {
-        Preferences.Default.Set("NotificationsEnabled", e.Value);
+        Preferences.Default.Set(NotificationService.NotificationsEnabledKey, e.Value);
 
         if (e.Value)
         {
-            bool isAllowed = await NotificationService.RequestNotificationPermission();
+            bool isAllowed = await NotificationService.RequestReminderPermissions();
 
             if (!isAllowed)
             {
@@ -79,7 +85,7 @@ public partial class SettingsPage : ContentPage
                 NotificationSwitch.IsToggled = false;
                 NotificationSwitch.Toggled += OnNotificationToggled;
 
-                Preferences.Default.Set("NotificationsEnabled", false);
+                Preferences.Default.Set(NotificationService.NotificationsEnabledKey, false);
                 return;
             }
         }
