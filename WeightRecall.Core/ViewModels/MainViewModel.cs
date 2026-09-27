@@ -179,6 +179,14 @@ public partial class MainViewModel : ObservableObject
         await SelectDate(Today);
     }
 
+    /// <summary>
+    /// Writes the day's entries and reports the outcome either way.
+    /// </summary>
+    /// <remarks>
+    /// A failure used to escape uncaught, so the confirmation never appeared and nothing took
+    /// its place: the button simply stopped being busy and the user was left believing their
+    /// workout had been recorded.
+    /// </remarks>
     [RelayCommand]
     public async Task SaveLogs()
     {
@@ -191,7 +199,15 @@ public partial class MainViewModel : ObservableObject
         {
             IsBusy = true;
             await _exerciseLogService.SaveExerciseLogsAsync(TodayExercises);
-            await _dialogService.AlertAsync("Saved", "Recent workout progress has been saved.");
+            await _dialogService.ShowBriefMessageAsync("Workout saved");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save exercise logs for {SelectedDate}", SelectedDate);
+            await _dialogService.ShowBriefMessageAsync(
+                "Could not save your workout. Please try again.",
+                isError: true
+            );
         }
         finally
         {

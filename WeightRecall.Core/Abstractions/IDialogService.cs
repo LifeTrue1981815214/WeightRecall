@@ -15,4 +15,11 @@ public interface IDialogService
     /// </summary>
     /// <returns><c>true</c> if the user accepted.</returns>
     Task<bool> ConfirmAsync(string title, string message, string accept, string cancel);
+
+    /// <summary>
+    /// Reports what just happened in a message that dismisses itself, with nothing to tap.
+    /// </summary>
+    /// <param name="message">The text to show.</param>
+    /// <param name="isError">When true the message stays on screen longer.</param>
+    Task ShowBriefMessageAsync(string message, bool isError = false);
 }
