@@ -16,16 +16,12 @@ public class ExerciseProgressService(IExerciseLogRepository repository, TimeProv
     private readonly TimeProvider _timeProvider = timeProvider;
 
     /// <summary>
-    /// Retrieves exercise logs for a specific exercise over the last month.
+    /// Retrieves exercise logs for a specific exercise over the last 30 days.
     /// </summary>
-    /// <remarks>
-    /// One calendar month back, not a fixed 30 days, so its length varies. The Progress page
-    /// labels it "Last 30 Days", which does not always match.
-    /// </remarks>
     public async Task<List<ExerciseLog>> GetExerciseProgressLastMonth(string exerciseName)
     {
         DateTime endDate = _timeProvider.GetLocalNow().Date;
-        DateTime startDate = endDate.AddMonths(-1);
+        DateTime startDate = endDate.AddDays(-30);
         return await _repository.GetLogsForExerciseInDateRangeAsync(
             exerciseName,
             startDate,
